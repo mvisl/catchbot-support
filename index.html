@@ -1,102 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8" />
 <title>CatchBot Support</title>
+
 <style>
-  body {
-    margin: 0;
-    padding: 0;
-    background: linear-gradient(to bottom, #000000 0%, #0B1C0A 100%);
-    font-family: "Roboto", Arial, sans-serif;
-    color: white;
-    height: 100vh;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
+    body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        font-family: "Roboto", Arial, sans-serif;
+        background: linear-gradient(to bottom, #000000 0%, #0B1C0A 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
-  .wrapper {
-    display: flex;
-    width: 90vw;
-    max-width: 1600px;
-    justify-content: space-between;
-    align-items: center;
-  }
+    .wrapper {
+        display: flex;
+        width: 100%;
+        max-width: 1400px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 60px;
+        box-sizing: border-box;
+    }
 
-  /* Левая колонка */
-  .left {
-    width: 38vw;
-    max-width: 520px;
-    display: flex;
-    justify-content: center;
-  }
+    /* Левая колонка — робот + логотип строго пропорциональны */
+    .left-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 45%;
+    }
 
-  .robot {
-    width: 100%;
-    height: auto;
-  }
+    .robot {
+        width: 300px;     /* фиксирует стабильный размер */
+    }
 
-  /* Правая колонка */
-  .right {
-    width: 35vw;
-    max-width: 500px;
-    text-align: center;
-  }
+    .logo {
+        width: 330px;     /* всегда одинаковая пропорция */
+        margin-top: 20px;
+    }
 
-  .logo {
-    width: 90%;
-    height: auto;
-    margin-bottom: 30px;
-  }
+    /* Правая колонка */
+    .right-block {
+        width: 40%;
+        color: #ffffff;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 
-  h1 {
-    font-size: 2.2vw;
-    font-weight: 700;
-    margin: 0 0 12px 0;
-  }
+    .title {
+        font-size: 30px;
+        font-weight: 700;
+        margin-bottom: 14px;
+    }
 
-  p {
-    font-size: 1.4vw;
-    color: #cccccc;
-    margin: 4px 0;
-    font-weight: 300;
-  }
+    .text {
+        font-size: 18px;
+        font-weight: 300;
+        color: rgba(255, 255, 255, 0.75);
+        line-height: 1.45;
+        margin-bottom: 6px;
+    }
 
-  a {
-    font-size: 1.4vw;
-    color: #4BA3FF;
-    text-decoration: underline;
-    font-weight: 300;
-  }
-
-  /* Ограничения на маленьких экранах */
-  @media (max-width: 900px) {
-    h1 { font-size: 22px; }
-    p, a { font-size: 16px; }
-    .wrapper { flex-direction: column; }
-    .left, .right { width: 90vw; max-width: none; }
-    body { overflow-y: auto; }
-  }
+    .email {
+        font-size: 18px;
+        font-weight: 300;
+        color: #4da3ff;
+        text-decoration: none;
+    }
 </style>
 </head>
 
 <body>
-  <div class="wrapper">
-    
-    <div class="left">
-      <img src="Robot Support.png" alt="Robot" class="robot">
+<div class="wrapper">
+
+    <div class="left-block">
+        <img src="Robot Support.png" class="robot" />
+        <img src="Logo.png" class="logo" />
     </div>
 
-    <div class="right">
-      <img src="Logo.png" alt="Logo" class="logo">
+    <div class="right-block">
+        <div class="title">CatchBot Support:</div>
 
-      <h1>CatchBot Support:</h1>
-      <p>If you need help or want to contact<br>the developer, please email:</p>
-      <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+        <div class="text">
+            If you need help or want to contact<br>
+            the developer, please email:
+        </div>
+
+        <a class="email" href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
     </div>
 
-  </div>
+</div>
 </body>
 </html>
