@@ -1,100 +1,157 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>CatchBot Support</title>
+  <meta charset="UTF-8" />
+  <title>CatchBot Support</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-<style>
+  <style>
+    /* БАЗА */
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
     body {
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        font-family: "Roboto", Arial, sans-serif;
-        background: linear-gradient(to bottom, #000000 0%, #0B1C0A 100%);
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #020402;
+      /* лёгкий вертикальный градиент снизу вверх */
+      background: linear-gradient(to top, #020402 0%, #050b04 35%, #0b1c0a 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Roboto", system-ui, sans-serif;
+      color: #f5f5f5;
     }
 
-    .wrapper {
-        display: flex;
-        width: 100%;
-        max-width: 1400px;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 60px;
-        box-sizing: border-box;
+    /* ГЛАВНЫЙ КОНТЕЙНЕР */
+
+    .page {
+      max-width: 1200px;
+      width: 100%;
+      padding: 40px 48px;
+      box-sizing: border-box;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 56px; /* фиксированное расстояние между колонками */
     }
 
-    /* Левая колонка — робот + логотип строго пропорциональны */
-    .left-block {
-        display: flex;
+    /* ЛЕВАЯ КОЛОНКА: РОБОТ */
+
+    .column-left {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .robot-image {
+      height: 420px;           /* фиксируем высоту робота */
+      max-width: 100%;
+      width: auto;
+      display: block;
+    }
+
+    /* ПРАВАЯ КОЛОНКА: ЛОГОТИП + ТЕКСТ */
+
+    .column-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      flex: 1;
+      gap: 28px;
+    }
+
+    .logo-image {
+      height: 210px;          /* логотип всегда в одной пропорции к роботу */
+      max-width: 100%;
+      width: auto;
+      display: block;
+    }
+
+    /* ТЕКСТ */
+
+    .support-title {
+      font-size: 28px;        /* заголовок уменьшен примерно на 30% */
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .support-text {
+      margin: 6px 0 0 0;
+      font-size: 17px;
+      line-height: 1.6;
+      color: #d1d4d1;         /* слегка серый, как просил */
+    }
+
+    .support-email {
+      font-size: 17px;        /* тот же размер, что и основной текст */
+      color: #4ca1ff;
+      text-decoration: none;
+    }
+
+    .support-email:hover,
+    .support-email:focus {
+      text-decoration: underline;
+    }
+
+    /* АДАПТИВ ДЛЯ УЗКИХ ЭКРАНОВ */
+
+    @media (max-width: 900px) {
+      .page {
         flex-direction: column;
+        padding: 32px 20px;
+        gap: 32px;
+      }
+
+      .column-right {
         align-items: center;
-        width: 45%;
-    }
-
-    .robot {
-        width: 300px;     /* фиксирует стабильный размер */
-    }
-
-    .logo {
-        width: 330px;     /* всегда одинаковая пропорция */
-        margin-top: 20px;
-    }
-
-    /* Правая колонка */
-    .right-block {
-        width: 40%;
-        color: #ffffff;
         text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
+      }
 
-    .title {
-        font-size: 30px;
-        font-weight: 700;
-        margin-bottom: 14px;
-    }
+      .robot-image {
+        height: 360px;
+      }
 
-    .text {
-        font-size: 18px;
-        font-weight: 300;
-        color: rgba(255, 255, 255, 0.75);
-        line-height: 1.45;
-        margin-bottom: 6px;
-    }
+      .logo-image {
+        height: 180px;
+      }
 
-    .email {
-        font-size: 18px;
-        font-weight: 300;
-        color: #4da3ff;
-        text-decoration: none;
+      .support-title {
+        font-size: 24px;
+      }
+
+      .support-text,
+      .support-email {
+        font-size: 16px;
+      }
     }
-</style>
+  </style>
 </head>
 
 <body>
-<div class="wrapper">
-
-    <div class="left-block">
-        <img src="Robot Support.png" class="robot" />
-        <img src="Logo.png" class="logo" />
+  <div class="page">
+    <!-- Левая колонка: робот -->
+    <div class="column-left">
+      <img src="Robot Support.png" alt="CatchBot robot" class="robot-image" />
     </div>
 
-    <div class="right-block">
-        <div class="title">CatchBot Support:</div>
+    <!-- Правая колонка: логотип + текст -->
+    <div class="column-right">
+      <img src="Logo.png" alt="CatchBot Recycler logo" class="logo-image" />
 
-        <div class="text">
-            If you need help or want to contact<br>
-            the developer, please email:
-        </div>
-
-        <a class="email" href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+      <div>
+        <h1 class="support-title">CatchBot Support:</h1>
+        <p class="support-text">
+          If you need help or want to contact the developer, please email:
+        </p>
+        <a class="support-email" href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+      </div>
     </div>
-
-</div>
+  </div>
 </body>
 </html>
