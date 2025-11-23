@@ -37,4 +37,95 @@
       padding: 24px;
     }
 
-    /* Левая колон
+    /* Левая колонка: робот */
+    .left img {
+      height: 68vh;        /* пропорционально высоте окна */
+      max-height: 68vh;
+      width: auto;
+    }
+
+    /* Правая колонка: логотип + текст */
+    .right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 32px;
+    }
+
+    .right img.logo {
+      height: 30vh;        /* логотип крупнее, ближе к макету */
+      max-height: 30vh;
+      width: auto;
+    }
+
+    .support-title {
+      font-size: 20px;
+      font-weight: 500;    /* полужирный, но не жирнее логотипа */
+      margin-bottom: 8px;
+    }
+
+    .support-body {
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 280px;
+    }
+
+    a {
+      color: #4da3ff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* Мобильная адаптация: стекаем блоки вертикально */
+    @media (max-width: 900px) {
+      body {
+        align-items: flex-start;
+      }
+
+      .main {
+        flex-direction: column;
+        gap: 32px;
+        padding-top: 32px;
+      }
+
+      .left img {
+        height: 40vh;
+        max-height: 40vh;
+      }
+
+      .right img.logo {
+        height: 20vh;
+        max-height: 20vh;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main">
+
+    <div class="left">
+      <img src="Robot Support.png" alt="CatchBot Robot">
+    </div>
+
+    <div class="right">
+      <img class="logo" src="Logo.png" alt="CatchBot Recycler">
+
+      <div class="support-text">
+        <div class="support-title">CatchBot Support:</div>
+        <div class="support-body">
+          If you need help or want to contact<br>
+          the developer, please email:<br>
+          <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
