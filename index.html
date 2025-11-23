@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>CatchBot Support</title>
 
-<!-- Roboto font -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 
 <style>
@@ -12,88 +11,102 @@
         margin: 0;
         padding: 0;
         height: 100%;
-        overflow: hidden; /* без скроллов */
-        font-family: 'Roboto', sans-serif;
+        width: 100%;
         background: linear-gradient(145deg, #000000 0%, #0B1C0A 100%);
-        color: white;
+        overflow: hidden;
+        font-family: "Roboto", sans-serif;
     }
 
-    .wrapper {
+    /* === ЭТАЛОННЫЙ КАДР === */
+    .frame {
+        width: 1440px;
+        height: 900px;
+
+        /* сжатие блока до размера экрана с сохранением пропорций */
+        transform-origin: top left;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        translate: -50% -50%;
+    }
+
+    /* === ВНУТРЕННЯЯ КОМПОЗИЦИЯ === */
+    .layout {
         display: flex;
         height: 100%;
         align-items: center;
         justify-content: center;
-        gap: 4vw; /* уменьшено расстояние между колонками */
-        padding: 0 4vw;
+        gap: 120px;
+        padding: 0 80px;
+        box-sizing: border-box;
     }
 
-    /* Левая колонка — робот */
     .robot {
-        max-height: 80vh;           /* пропорциональное масштабирование */
+        height: 600px;
         width: auto;
     }
 
-    /* Правая колонка */
-    .right-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+    .right {
         text-align: center;
-        max-width: 450px;
+        width: 420px;
     }
 
     .logo {
-        max-width: 360px;
-        width: 90%;
+        width: 420px;
         height: auto;
-        margin-bottom: 30px;
+        margin-bottom: 40px;
     }
 
-    .support-title {
-        font-size: 2rem;
+    .title {
+        font-size: 36px;
         font-weight: 700;
         margin-bottom: 20px;
     }
 
-    .support-text p {
-        margin: 0;
+    .text {
         color: #cccccc;
-        font-size: 1.25rem;
         font-weight: 300;
-        line-height: 1.6;
+        font-size: 24px;
+        line-height: 1.5;
     }
 
-    .support-text a {
-        display: block;
-        margin-top: 10px;
+    .text a {
         color: #4EA3F1;
-        text-decoration: none;
-        font-size: 1.25rem;
+        font-size: 24px;
         font-weight: 400;
+        text-decoration: none;
     }
 
+    /* === АДАПТАЦИЯ МАСШТАБИРОВАНИЕМ === */
+    @media (min-aspect-ratio: 16/10) {
+        /* экран широкий — масштабируем по высоте */
+        .frame {
+            transform: scale(calc(100vh / 900));
+        }
+    }
+    @media (max-aspect-ratio: 16/10) {
+        /* экран высокий — масштабируем по ширине */
+        .frame {
+            transform: scale(calc(100vw / 1440));
+        }
+    }
 </style>
 </head>
 
 <body>
 
-<div class="wrapper">
-
-    <!-- ЛЕВАЯ КОЛОНКА (робот) -->
-    <img class="robot" src="Robot Support.png" alt="Robot">
-
-    <!-- ПРАВАЯ КОЛОНКА -->
-    <div class="right-col">
-
-        <img class="logo" src="Logo.png" alt="CatchBot Recycler">
-
-        <div class="support-title">CatchBot Support:</div>
-
-        <div class="support-text">
-            <p>If you need help or want to contact<br>the developer, please email:</p>
-            <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+<div class="frame">
+    <div class="layout">
+        <img class="robot" src="Robot Support.png" alt="">
+        <div class="right">
+            <img class="logo" src="Logo.png" alt="CatchBot Recycler">
+            <div class="title">CatchBot Support:</div>
+            <div class="text">
+                If you need help or want to contact<br>
+                the developer, please email:
+                <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+            </div>
         </div>
-
     </div>
 </div>
 
