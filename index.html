@@ -17,21 +17,22 @@
         justify-content: center;
         align-items: center;
 
-        /* Градиент как на макете */
-        background: linear-gradient(90deg, #000000 0%, #0B1C0A 100%);
+        /* Градиент: внизу почти чёрный, к верху зеленеет */
+        background: linear-gradient(0deg, #000000 0%, #0B1C0A 100%);
     }
 
     .wrapper {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 40px; /* уменьшили расстояние на 30% */
+        gap: 40px; /* уменьшенное расстояние между колонками */
         max-width: 1200px;
         width: 90%;
     }
 
+    /* Робот: не больше 70% высоты окна */
     .robot {
-        max-height: 80vh; /* авто-масштабирование без скроллов */
+        max-height: 70vh;
         height: auto;
     }
 
@@ -55,8 +56,8 @@
 
     .desc {
         font-size: 18px;
-        font-weight: 300; /* тонкий текст */
-        color: #D0D0D0;   /* слегка сероватый */
+        font-weight: 300;
+        color: #D0D0D0;
         line-height: 1.5;
         margin-bottom: 10px;
     }
@@ -73,10 +74,10 @@
 <body>
 
 <div class="wrapper">
-    <img src="Robot Support.png" class="robot">
+    <img src="Robot Support.png" class="robot" alt="CatchBot">
 
     <div class="text-block">
-        <img src="Logo.png" class="logo">
+        <img src="Logo.png" class="logo" alt="CatchBot Logo">
         <div class="title">CatchBot Support:</div>
 
         <div class="desc">
