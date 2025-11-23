@@ -1,54 +1,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>CatchBot Support</title>
-  <style>
-      body {
-          margin: 0;
-          padding: 0;
-          background-color: black;
-          color: white;
-          font-family: Arial, sans-serif;
-          text-align: center;
-      }
-      .container {
-          padding-top: 40px;
-      }
-      img {
-          max-width: 90%;
-          height: auto;
-      }
-      .logo {
-          margin-top: 20px;
-          width: 500px;
-          max-width: 80%;
-      }
-      .robot {
-          margin-top: 40px;
-          width: 350px;
-          max-width: 70%;
-      }
-      .email {
-          margin-top: 30px;
-          font-size: 20px;
-      }
-      a {
-          color: #4da3ff;
-      }
-  </style>
+<meta charset="UTF-8">
+<title>CatchBot Support</title>
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        background-color: black;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+    }
+
+    .wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 40px;
+        padding-top: 60px;
+        flex-wrap: wrap;
+    }
+
+    .left img {
+        width: 280px; /* ⬅️ уменьшил робота на ~40% */
+        height: auto;
+    }
+
+    .right img.logo {
+        width: 260px; /* ⬅️ логотип чуть меньше */
+        height: auto;
+        margin-bottom: 25px;
+    }
+
+    .support-text {
+        margin-top: 10px;
+        font-size: 17px;
+        line-height: 1.5;
+        max-width: 260px;
+    }
+
+    a {
+        color: #4da3ff;
+        text-decoration: none;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
+</style>
 </head>
+
 <body>
 
-<div class="container">
-    <img src="Robot Support.png" class="robot">
-    <img src="Logo.png" class="logo">
-    
-    <div class="email">
-        <p>CatchBot Support:</p>
-        <p>If you need help or want to contact the developer,<br>
-        please email: <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a></p>
+<div class="wrapper">
+
+    <div class="left">
+        <img src="Robot Support.png" alt="Robot">
     </div>
+
+    <div class="right">
+        <img class="logo" src="Logo.png" alt="Logo">
+
+        <div class="support-text">
+            <strong>CatchBot Support:</strong><br><br>
+            If you need help or want to contact the developer,<br>
+            please email:<br>
+            <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+        </div>
+    </div>
+
 </div>
 
 </body>
