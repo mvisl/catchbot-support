@@ -1,76 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>CatchBot Support</title>
-<style>
+  <meta charset="UTF-8">
+  <title>CatchBot Support</title>
+
+  <!-- Roboto -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
     body {
-        margin: 0;
-        padding: 0;
-        background-color: black;
-        color: white;
-        font-family: Arial, sans-serif;
-        text-align: center;
+      background: #000;
+      color: #fff;
+      font-family: "Roboto", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
-    .wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 40px;
-        padding-top: 60px;
-        flex-wrap: wrap;
+    .main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 56px;
+      width: 100%;
+      max-width: 1200px;
+      padding: 24px;
     }
 
-    .left img {
-        width: 280px; /* ⬅️ уменьшил робота на ~40% */
-        height: auto;
-    }
-
-    .right img.logo {
-        width: 260px; /* ⬅️ логотип чуть меньше */
-        height: auto;
-        margin-bottom: 25px;
-    }
-
-    .support-text {
-        margin-top: 10px;
-        font-size: 17px;
-        line-height: 1.5;
-        max-width: 260px;
-    }
-
-    a {
-        color: #4da3ff;
-        text-decoration: none;
-    }
-
-    a:hover {
-        text-decoration: underline;
-    }
-</style>
-</head>
-
-<body>
-
-<div class="wrapper">
-
-    <div class="left">
-        <img src="Robot Support.png" alt="Robot">
-    </div>
-
-    <div class="right">
-        <img class="logo" src="Logo.png" alt="Logo">
-
-        <div class="support-text">
-            <strong>CatchBot Support:</strong><br><br>
-            If you need help or want to contact the developer,<br>
-            please email:<br>
-            <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
-        </div>
-    </div>
-
-</div>
-
-</body>
-</html>
+    /* Левая колон
