@@ -1,131 +1,92 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>CatchBot Support</title>
+<meta charset="UTF-8">
+<title>CatchBot Support</title>
 
-  <!-- Roboto -->
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<!-- Roboto -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-    }
-
+<style>
     body {
-      background: #000;
-      color: #fff;
-      font-family: "Roboto", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+        margin: 0;
+        padding: 0;
+        font-family: 'Roboto', sans-serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        /* Градиент как на макете */
+        background: linear-gradient(90deg, #000000 0%, #0B1C0A 100%);
     }
 
-    .main {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 56px;
-      width: 100%;
-      max-width: 1200px;
-      padding: 24px;
+    .wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 40px; /* уменьшили расстояние на 30% */
+        max-width: 1200px;
+        width: 90%;
     }
 
-    /* Левая колонка: робот */
-    .left img {
-      height: 68vh;        /* пропорционально высоте окна */
-      max-height: 68vh;
-      width: auto;
+    .robot {
+        max-height: 80vh; /* авто-масштабирование без скроллов */
+        height: auto;
     }
 
-    /* Правая колонка: логотип + текст */
-    .right {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 32px;
+    .logo {
+        max-width: 360px;
+        margin-bottom: 40px;
     }
 
-    .right img.logo {
-      height: 30vh;        /* логотип крупнее, ближе к макету */
-      max-height: 30vh;
-      width: auto;
+    .text-block {
+        color: white;
+        text-align: center;
+        max-width: 420px;
     }
 
-    .support-title {
-      font-size: 20px;
-      font-weight: 500;    /* полужирный, но не жирнее логотипа */
-      margin-bottom: 8px;
+    .title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 15px;
+        color: white;
     }
 
-    .support-body {
-      font-size: 15px;
-      line-height: 1.5;
-      max-width: 280px;
+    .desc {
+        font-size: 18px;
+        font-weight: 300; /* тонкий текст */
+        color: #D0D0D0;   /* слегка сероватый */
+        line-height: 1.5;
+        margin-bottom: 10px;
     }
 
     a {
-      color: #4da3ff;
-      text-decoration: none;
-      font-weight: 500;
+        color: #4DA3FF;
+        font-size: 20px;
+        font-weight: 400;
+        text-decoration: none;
     }
-
-    a:hover {
-      text-decoration: underline;
-    }
-
-    /* Мобильная адаптация: стекаем блоки вертикально */
-    @media (max-width: 900px) {
-      body {
-        align-items: flex-start;
-      }
-
-      .main {
-        flex-direction: column;
-        gap: 32px;
-        padding-top: 32px;
-      }
-
-      .left img {
-        height: 40vh;
-        max-height: 40vh;
-      }
-
-      .right img.logo {
-        height: 20vh;
-        max-height: 20vh;
-      }
-    }
-  </style>
+</style>
 </head>
 
 <body>
-  <div class="main">
 
-    <div class="left">
-      <img src="Robot Support.png" alt="CatchBot Robot">
-    </div>
+<div class="wrapper">
+    <img src="Robot Support.png" class="robot">
 
-    <div class="right">
-      <img class="logo" src="Logo.png" alt="CatchBot Recycler">
+    <div class="text-block">
+        <img src="Logo.png" class="logo">
+        <div class="title">CatchBot Support:</div>
 
-      <div class="support-text">
-        <div class="support-title">CatchBot Support:</div>
-        <div class="support-body">
-          If you need help or want to contact<br>
-          the developer, please email:<br>
-          <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+        <div class="desc">
+            If you need help or want to contact<br>
+            the developer, please email:
         </div>
-      </div>
-    </div>
 
-  </div>
+        <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
+    </div>
+</div>
+
 </body>
 </html>
