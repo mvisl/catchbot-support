@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>CatchBot Support</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <!-- Roboto -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
@@ -38,35 +39,108 @@
 
     .logo {
         max-width: 360px;
-        margin-bottom: 40px;
+        margin-bottom: 24px;
     }
 
     .text-block {
         color: white;
         text-align: center;
-        max-width: 420px;
+        max-width: 340px;
     }
 
     .title {
-        font-size: 28px;
+        font-size: 22px;
         font-weight: 700;
-        margin-bottom: 15px;
+        margin-bottom: 12px;
         color: white;
     }
 
     .desc {
-        font-size: 18px;
+        font-size: 15px;
         font-weight: 300;
         color: #D0D0D0;
         line-height: 1.5;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
 
     a {
         color: #4DA3FF;
-        font-size: 20px;
+        font-size: 16px;
         font-weight: 400;
         text-decoration: none;
+    }
+
+    .play-button {
+        background: radial-gradient(circle at 30% 20%, #4EE070 0%, #1F6E2B 60%, #14501E 100%);
+        border: none;
+        color: #F4FFF4;
+        font-size: 22px;
+        font-weight: 700;
+        padding: 14px 44px;
+        border-radius: 999px;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(30, 120, 60, 0.45);
+        margin-bottom: 26px;
+        letter-spacing: 0.5px;
+        animation: playPulse 1.8s ease-in-out infinite;
+        transition: transform 0.2s ease;
+    }
+
+    .play-button:focus-visible {
+        outline: 2px solid #B7FF9C;
+        outline-offset: 4px;
+    }
+
+    .play-button:hover {
+        transform: translateY(-1px) scale(1.02);
+    }
+
+    @keyframes playPulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(78, 224, 112, 0.45);
+        }
+        70% {
+            box-shadow: 0 0 0 18px rgba(78, 224, 112, 0.0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(78, 224, 112, 0.0);
+        }
+    }
+
+    .game-shell {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: #000000;
+        z-index: 10;
+    }
+
+    .game-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: #0B1C0A;
+    }
+
+    body.is-playing .wrapper {
+        display: none;
+    }
+
+    body.is-playing .game-shell {
+        display: flex;
+    }
+
+    @media (max-width: 900px) {
+        .wrapper {
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .robot {
+            max-height: 50vh;
+        }
     }
 </style>
 </head>
@@ -78,6 +152,7 @@
 
     <div class="text-block">
         <img src="Logo.png" class="logo" alt="CatchBot Logo">
+        <button class="play-button" id="play-button" type="button">Play</button>
         <div class="title">CatchBot Support:</div>
 
         <div class="desc">
@@ -88,6 +163,24 @@
         <a href="mailto:mvisl1@gmail.com">mvisl1@gmail.com</a>
     </div>
 </div>
+
+<div class="game-shell" id="game-shell">
+    <canvas class="game-canvas" id="game-canvas"></canvas>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js" defer></script>
+<script src="game.js" defer></script>
+<script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const playButton = document.getElementById('play-button');
+        playButton.addEventListener('click', () => {
+            document.body.classList.add('is-playing');
+            if (window.startCatchbot) {
+                window.startCatchbot();
+            }
+        });
+    });
+</script>
 
 </body>
 </html>
