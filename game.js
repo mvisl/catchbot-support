@@ -9,6 +9,7 @@
   const ROBOT_STEP = 180;
   const PARALLAX_RANGE = 24;
   const BEST_KEY = 'catchbot-best-score';
+  const START_LIVES = 5;
 
   let gameInstance = null;
 
@@ -19,10 +20,17 @@
     preload() {
       this.load.image('background', 'assets/background.png');
       this.load.image('robot', 'assets/robot.png');
+      this.load.image('stand', 'assets/stand.png');
       this.load.image('screw', 'assets/screw.png');
       this.load.image('fish', 'assets/fish.png');
       this.load.image('waterBack', 'assets/waterBack.png');
       this.load.image('waterFront', 'assets/waterFront.png');
+      this.load.image('uiPause', 'assets/ui-pause.png');
+      this.load.image('uiReplay', 'assets/ui-replay.png');
+      this.load.image('uiPlay', 'assets/ui-play.png');
+      this.load.audio('sfxCollect', 'assets/sfx/collect.wav');
+      this.load.audio('sfxFish', 'assets/sfx/ouch.wav');
+      this.load.audio('sfxMiss', 'assets/sfx/miss.wav');
 
       const loadingText = this.add.text(BASE_WIDTH / 2, BASE_HEIGHT / 2, 'Loading game...', {
         fontFamily: 'Roboto, sans-serif',
@@ -53,6 +61,8 @@
       this.gameOver = false;
       this.hud = {};
       this.bestScore = 0;
+      this.lives = START_LIVES;
+      this.ui = {};
     }
 
     create() {
@@ -62,6 +72,11 @@
       this.add.image(BASE_WIDTH / 2, BASE_HEIGHT / 2, 'background')
         .setDisplaySize(BASE_WIDTH, BASE_HEIGHT)
         .setOrigin(0.5, 0.5);
+
+      this.stand = this.add.image(BASE_WIDTH / 2, BASE_HEIGHT - 80, 'stand');
+      this.stand.setOrigin(0.5, 1);
+      const standScale = (BASE_WIDTH * 0.35) / this.stand.width;
+      this.stand.setScale(standScale);
 
       this.waterBack = this.add.tileSprite(BASE_WIDTH / 2, BASE_HEIGHT - 120, BASE_WIDTH, 135, 'waterBack')
         .setOrigin(0.5, 0.5)
@@ -121,7 +136,7 @@
     createHud() {
       const textStyle = { fontFamily: 'Roboto, sans-serif', fontSize: '24px', color: '#E8FCE9' };
       this.hud.score = this.add.text(24, 18, 'Score: 0', textStyle).setScrollFactor(0);
-       // load best score from local storage to mirror iOS persistence
+      // load best score from local storage to mirror iOS persistence
       const bestStored = Number(localStorage.getItem(BEST_KEY) || 0);
       this.bestScore = Number.isFinite(bestStored) ? bestStored : 0;
       this.hud.best = this.add.text(24, 50, `Best: ${this.bestScore}`, { ...textStyle, fontSize: '20px', color: '#8DE9FF' }).setScrollFactor(0);
@@ -136,24 +151,13 @@
         align: 'center'
       }).setOrigin(0.5).setVisible(false);
 
-      // simple pause / restart buttons to mirror iOS controls
-      this.hud.pauseBtn = this.add.text(BASE_WIDTH - 140, 22, '[ Pause ]', {
-        ...textStyle,
-        fontSize: '20px',
-        color: '#E6FFD7',
-        backgroundColor: 'rgba(0,0,0,0.35)',
-        padding: { x: 12, y: 6 }
-      }).setOrigin(0, 0);
-      this.hud.restartBtn = this.add.text(BASE_WIDTH - 140, 60, '[ Restart ]', {
-        ...textStyle,
-        fontSize: '20px',
-        color: '#E6FFD7',
-        backgroundColor: 'rgba(0,0,0,0.35)',
-        padding: { x: 12, y: 6 }
-      }).setOrigin(0, 0);
+      this.ui.pauseBtn = this.add.image(BASE_WIDTH - 72, 48, 'uiPause').setInteractive({ useHandCursor: true });
+      this.ui.pauseBtn.setScale(0.7);
+      this.ui.pauseBtn.on('pointerdown', () => this.togglePause());
 
-      this.hud.pauseBtn.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.togglePause());
-      this.hud.restartBtn.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.scene.restart());
+      this.ui.restartBtn = this.add.image(BASE_WIDTH - 72, 116, 'uiReplay').setInteractive({ useHandCursor: true });
+      this.ui.restartBtn.setScale(0.7);
+      this.ui.restartBtn.on('pointerdown', () => this.scene.restart());
     }
 
     startSpawning() {
@@ -205,9 +209,11 @@
       if (type === 'fish') {
         this.addScore(-500);
         this.flashText('Fish! -500', '#FFBA5C');
+        this.sound.play('sfxFish', { volume: 0.7 });
       } else {
         this.addScore(10);
         this.flashText('+10', '#9CFFC2', item.x, item.y);
+        this.sound.play('sfxCollect', { volume: 0.7 });
       }
       item.destroy();
     }
@@ -226,6 +232,7 @@
       item.destroy();
       this.misses += 1;
       this.hud.miss.setText(`Missed: ${this.misses}/${MAX_MISSES}`);
+      this.sound.play('sfxMiss', { volume: 0.65 });
       if (this.misses >= MAX_MISSES) {
         this.endGame();
       }
