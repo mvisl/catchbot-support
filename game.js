@@ -10,6 +10,13 @@
   const PARALLAX_RANGE = 24;
   const BEST_KEY = 'catchbot-best-score';
   const START_LIVES = 5;
+  const SPAWN_POINTS = [
+    { x: 0, y: 530, dir: 1 },
+    { x: 0, y: 344, dir: 1 },
+    { x: BASE_WIDTH, y: 530, dir: -1 },
+    { x: BASE_WIDTH, y: 344, dir: -1 },
+  ];
+  const LAUNCH = { dx: 220, dy: 280 };
 
   let gameInstance = null;
 
@@ -88,7 +95,7 @@
 
       this.stand = this.add.image(BASE_WIDTH / 2, BASE_HEIGHT - 80, 'stand');
       this.stand.setOrigin(0.5, 1);
-      const standScale = (BASE_WIDTH * 0.35) / this.stand.width;
+      const standScale = (BASE_WIDTH * 0.42) / this.stand.width;
       this.stand.setScale(standScale);
 
       this.waterBack = this.add.tileSprite(BASE_WIDTH / 2, BASE_HEIGHT - 120, BASE_WIDTH, 135, 'waterBack')
@@ -103,10 +110,11 @@
       this.robot.setImmovable(true);
       this.robot.body.allowGravity = false;
       this.robot.setCollideWorldBounds(true);
-      const robotScale = (BASE_HEIGHT * 0.6) / this.robot.height;
+      const robotScale = (BASE_HEIGHT * 0.5) / this.robot.height;
       this.robot.setScale(robotScale);
       this.robot.body.setSize(this.robot.displayWidth * 0.45, this.robot.displayHeight * 0.2);
       this.robot.body.setOffset(this.robot.displayWidth * 0.275, this.robot.displayHeight * 0.65);
+      this.robot.setDepth(10);
 
       this.cartZone = this.add.zone(this.robot.x, this.robot.y + this.robot.displayHeight * 0.05,
         this.robot.displayWidth * 0.5, this.robot.displayHeight * 0.25);
@@ -197,16 +205,14 @@
       if (this.gameOver) return;
       const isFish = Math.random() < this.fishChance();
       const key = isFish ? 'fish' : 'screw';
-      const x = Phaser.Math.Between(80, BASE_WIDTH - 80);
-      const y = -40;
-      const item = this.items.create(x, y, key);
+      const spawn = Phaser.Utils.Array.GetRandom(SPAWN_POINTS);
+      const item = this.items.create(spawn.x, spawn.y, key);
       const baseScale = isFish ? 0.5 : 0.45;
       item.setScale(baseScale);
       item.body.setCircle(Math.max(item.displayWidth, item.displayHeight) * 0.25);
       item.body.setBounce(0.08);
-      const horizontalBias = (x - BASE_WIDTH / 2) / (BASE_WIDTH / 2);
-      const vx = Phaser.Math.Between(-70, 70) + horizontalBias * 40;
-      const vy = Phaser.Math.Between(240, 340);
+      const vx = spawn.dir * (LAUNCH.dx + Phaser.Math.Between(-40, 40));
+      const vy = LAUNCH.dy + Phaser.Math.Between(-40, 40);
       item.setVelocity(vx, vy);
       item.setData('type', isFish ? 'fish' : 'screw');
     }
