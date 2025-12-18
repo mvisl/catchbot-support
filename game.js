@@ -18,25 +18,38 @@
       super('preload');
     }
     preload() {
-      this.load.image('background', 'assets/background.png');
-      this.load.image('robot', 'assets/robot.png');
-      this.load.image('stand', 'assets/stand.png');
-      this.load.image('screw', 'assets/screw.png');
-      this.load.image('fish', 'assets/fish.png');
-      this.load.image('waterBack', 'assets/waterBack.png');
-      this.load.image('waterFront', 'assets/waterFront.png');
-      this.load.image('uiPause', 'assets/ui-pause.png');
-      this.load.image('uiReplay', 'assets/ui-replay.png');
-      this.load.image('uiPlay', 'assets/ui-play.png');
-      this.load.audio('sfxCollect', 'assets/sfx/collect.wav');
-      this.load.audio('sfxFish', 'assets/sfx/ouch.wav');
-      this.load.audio('sfxMiss', 'assets/sfx/miss.wav');
+      // ensure paths work on GitHub Pages and locally
+      this.load.setPath('assets');
+      this.load.image('background', 'background.png');
+      this.load.image('robot', 'robot.png');
+      this.load.image('stand', 'stand.png');
+      this.load.image('screw', 'screw.png');
+      this.load.image('fish', 'fish.png');
+      this.load.image('waterBack', 'waterBack.png');
+      this.load.image('waterFront', 'waterFront.png');
+      this.load.image('uiPause', 'ui-pause.png');
+      this.load.image('uiReplay', 'ui-replay.png');
+      this.load.image('uiPlay', 'ui-play.png');
+      this.load.audio('sfxCollect', 'sfx/collect.wav');
+      this.load.audio('sfxFish', 'sfx/ouch.wav');
+      this.load.audio('sfxMiss', 'sfx/miss.wav');
 
       const loadingText = this.add.text(BASE_WIDTH / 2, BASE_HEIGHT / 2, 'Loading game...', {
         fontFamily: 'Roboto, sans-serif',
         fontSize: '22px',
         color: '#CFEFD2'
       }).setOrigin(0.5);
+      const errorText = this.add.text(BASE_WIDTH / 2, BASE_HEIGHT / 2 + 36, '', {
+        fontFamily: 'Roboto, sans-serif',
+        fontSize: '16px',
+        color: '#FFBABA',
+        align: 'center',
+        wordWrap: { width: BASE_WIDTH * 0.8 }
+      }).setOrigin(0.5);
+
+      this.load.on('loaderror', (file) => {
+        errorText.setText(`Failed to load ${file.key}`);
+      });
 
       this.load.on('complete', () => loadingText.destroy());
     }
