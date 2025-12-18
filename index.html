@@ -166,6 +166,9 @@
 
 <div class="game-shell" id="game-shell">
     <canvas class="game-canvas" id="game-canvas"></canvas>
+    <div id="game-status" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#CFEFD2;font-family:'Roboto',sans-serif;font-size:18px;text-align:center;pointer-events:none;display:none;">
+        Launching...
+    </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js" defer></script>
@@ -175,8 +178,19 @@
         const playButton = document.getElementById('play-button');
         playButton.addEventListener('click', () => {
             document.body.classList.add('is-playing');
+            const status = document.getElementById('game-status');
+            if (status) {
+                status.style.display = 'block';
+                status.textContent = 'Launching...';
+            }
             if (window.startCatchbot) {
-                window.startCatchbot();
+                window.startCatchbot(() => {
+                    if (status) status.style.display = 'none';
+                }, (err) => {
+                    if (status) status.textContent = err || 'Failed to start game';
+                });
+            } else if (status) {
+                status.textContent = 'Game script failed to load';
             }
         });
     });

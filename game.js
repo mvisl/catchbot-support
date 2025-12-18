@@ -318,31 +318,45 @@
     }
   }
 
-  const startGame = () => {
-    if (gameInstance) return;
-    gameInstance = new Phaser.Game({
-      type: Phaser.AUTO,
-      canvas: document.getElementById('game-canvas'),
-      parent: document.getElementById('game-shell'),
-      width: BASE_WIDTH,
-      height: BASE_HEIGHT,
-      backgroundColor: '#0B1C0A',
-      resolution: window.devicePixelRatio || 1,
-      scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH,
+  const startGame = (onReady, onError) => {
+    if (gameInstance) {
+      if (onReady) onReady();
+      return;
+    }
+    try {
+      gameInstance = new Phaser.Game({
+        type: Phaser.WEBGL, // explicit render type to avoid custom env error
+        canvas: document.getElementById('game-canvas'),
+        parent: document.getElementById('game-shell'),
         width: BASE_WIDTH,
-        height: BASE_HEIGHT
-      },
-      physics: {
-        default: 'arcade',
-        arcade: {
-          gravity: { y: GRAVITY },
-          debug: false
-        }
-      },
-      scene: [PreloadScene, MainScene]
-    });
+        height: BASE_HEIGHT,
+        backgroundColor: '#0B1C0A',
+        resolution: window.devicePixelRatio || 1,
+        scale: {
+          mode: Phaser.Scale.FIT,
+          autoCenter: Phaser.Scale.CENTER_BOTH,
+          width: BASE_WIDTH,
+          height: BASE_HEIGHT
+        },
+        render: {
+          antialias: true,
+          pixelArt: false,
+          powerPreference: 'high-performance'
+        },
+        physics: {
+          default: 'arcade',
+          arcade: {
+            gravity: { y: GRAVITY },
+            debug: false
+          }
+        },
+        scene: [PreloadScene, MainScene]
+      });
+      if (onReady) onReady();
+    } catch (err) {
+      console.error('Failed to start game', err);
+      if (onError) onError(err.message || 'Failed to start game');
+    }
   };
 
   window.startCatchbot = startGame;
