@@ -36,9 +36,7 @@
     { name: 'background', url: 'assets/background.png' },
     { name: 'stand', url: 'assets/stand.png' },
     { name: 'robot', url: 'assets/robot.png' },
-    { name: 'robotBody', url: 'assets/robotBody.png' },
-    { name: 'robotHands', url: 'assets/robotHands.png' },
-    { name: 'robotCart', url: 'assets/robotCart.png' },
+    { name: 'robotBase', url: 'assets/robotBase.png' },
     { name: 'robotHeadLeft', url: 'assets/robotHeadLeft.png' },
     { name: 'robotHeadRight', url: 'assets/robotHeadRight.png' },
     { name: 'robotHeadLeftOi', url: 'assets/robotHeadLeftOi.png' },
@@ -133,9 +131,7 @@
   let hudContainer;
   let robotContainer;
   let robotHead;
-  let robotHands;
-  let robotCart;
-  let robotBody;
+  let cartHole;
   let stand;
   let waterBack;
   let waterFront;
@@ -241,20 +237,19 @@
     robotContainer.scale.set(ROBOT_SCALE);
     robotContainer.zIndex = 10;
 
-    robotCart = createSprite('robotCart', { anchor: { x: 0.5, y: 0.5 } });
-    robotCart.scale.set(1.35);
-    robotCart.position.set(-CART_OFFSET, -robotCart.height * 0.6);
+    const base = createSprite('robotBase', { anchor: { x: 0.5, y: 1 }, position: { x: 0, y: 0 } });
+    base.scale.set(1);
 
-    robotBody = createSprite('robotBody', { anchor: { x: 0.5, y: 1 }, position: { x: 0, y: 0 } });
-    robotBody.scale.set(1.2);
+    cartHole = new PIXI.Graphics();
+    cartHole.beginFill(0xff0000, 0.0001);
+    cartHole.drawRect(-CART_HOLE_WIDTH / 2, -CART_HOLE_HEIGHT / 2, CART_HOLE_WIDTH, CART_HOLE_HEIGHT);
+    cartHole.endFill();
+    cartHole.position.set(-CART_OFFSET, -100);
 
-    robotHands = createSprite('robotHands', { anchor: { x: 0.5, y: 0.5 }, position: { x: -HANDS_OFFSET, y: -robotBody.height * 0.22 } });
-    robotHands.scale.set(1.15);
-
-    robotHead = createSprite('robotHeadLeft', { anchor: { x: 0.5, y: 0.5 }, position: { x: 0, y: -robotBody.height * 0.85 } });
+    robotHead = createSprite('robotHeadLeft', { anchor: { x: 0.5, y: 0.5 }, position: { x: 0, y: -base.height * 0.85 } });
     robotHead.scale.set(1.05);
 
-    robotContainer.addChild(robotCart, robotBody, robotHands, robotHead);
+    robotContainer.addChild(base, cartHole, robotHead);
     stand.addChild(robotContainer);
   }
 
@@ -471,12 +466,6 @@
       }
       robotHead.rotation = aimBias * 0.05;
     }
-    if (robotHands) {
-      robotHands.x += (dir * HANDS_OFFSET - robotHands.x) * 0.25;
-    }
-    if (robotCart) {
-      robotCart.x += (dir * CART_OFFSET - robotCart.x) * 0.25;
-    }
     if (robotContainer) {
       robotContainer.rotation = aimBias * 0.05;
     }
@@ -495,12 +484,12 @@
       item.y += item.vy * dt;
 
       let withinCart = false;
-      if (robotCart) {
-        const cartBounds = robotCart.getBounds();
-        const holeW = CART_HOLE_WIDTH * robotCart.scale.x * ROBOT_SCALE;
-        const holeH = CART_HOLE_HEIGHT * robotCart.scale.y * ROBOT_SCALE;
+      if (cartHole) {
+        const cartBounds = cartHole.getBounds();
         const cartCenterX = cartBounds.x + cartBounds.width / 2;
-        const cartCenterY = cartBounds.y + cartBounds.height * 0.35;
+        const cartCenterY = cartBounds.y + cartBounds.height / 2;
+        const holeW = cartBounds.width * ROBOT_SCALE;
+        const holeH = cartBounds.height * ROBOT_SCALE;
         withinCart = Math.abs(item.x - cartCenterX) < holeW / 2 && Math.abs(item.y - cartCenterY) < holeH / 2;
       }
 
@@ -573,8 +562,8 @@
     const clampLeft = BASE_WIDTH * 0.22;
     const clampRight = BASE_WIDTH * 0.78;
     let cartCenterX = ROBOT_X;
-    if (robotCart) {
-      const bounds = robotCart.getBounds();
+    if (cartHole) {
+      const bounds = cartHole.getBounds();
       cartCenterX = bounds.x + bounds.width / 2;
     }
     const targetX = clamp(side === -1 ? Math.min(cartCenterX, BASE_WIDTH * 0.49) : Math.max(cartCenterX, BASE_WIDTH * 0.51), clampLeft, clampRight);
@@ -637,10 +626,10 @@
 
   function checkFishCatchWindow(pos) {
     if (!activeFish) return;
-    if (!robotCart) return;
-    const cartBounds = robotCart.getBounds();
-    const cartCenter = { x: cartBounds.x + cartBounds.width / 2, y: cartBounds.y + cartBounds.height * 0.35 };
-    const cartTop = cartCenter.y - CART_HOLE_HEIGHT * robotCart.scale.y * ROBOT_SCALE * 0.5;
+    if (!cartHole) return;
+    const cartBounds = cartHole.getBounds();
+    const cartCenter = { x: cartBounds.x + cartBounds.width / 2, y: cartBounds.y + cartBounds.height / 2 };
+    const cartTop = cartCenter.y - cartBounds.height * 0.5;
     if (pos.y < cartTop - 36) {
       fishWindowClosed = true;
       return;
@@ -650,7 +639,7 @@
       const dx = pos.x - cartCenter.x;
       const dy = pos.y - cartCenter.y;
       const dist = Math.hypot(dx, dy);
-      const holeW = CART_HOLE_WIDTH * robotCart.scale.x * ROBOT_SCALE;
+      const holeW = cartBounds.width;
       const withinCart = Math.abs(dx) < holeW / 2;
       if (dist <= FISH_HIT_RADIUS && withinCart) {
         disposeFish(true);
