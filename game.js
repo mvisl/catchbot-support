@@ -49,8 +49,10 @@
   let score = 0;
   let best = 0;
   let misses = 0;
-  let spawnInterval = 2000; // ms
+  let spawnInterval = 2000; // ms baseline (SpriteKit starts at 2s)
   let spawnTimer;
+  let lastSpawnTime = 0;
+  let pendingRelaxations = 0;
   let playing = false;
   let targetX = BASE_WIDTH / 2;
   let statusEl;
@@ -128,6 +130,9 @@
     score = 0;
     misses = 0;
     spawnInterval = 2000;
+    lastSpawnTime = performance.now();
+    pendingRelaxations = 0;
+    intellect.reset();
     targetX = BASE_WIDTH / 2;
 
     const bg = createSprite('background', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT / 2 } });
@@ -265,6 +270,7 @@
   function update(delta) {
     if (!playing) return;
     const dt = delta / 60; // normalized
+    const now = performance.now();
 
     // Move robot toward target
     robot.x += (targetX - robot.x) * 0.18;
@@ -294,6 +300,20 @@
       }
     });
     items = items.filter((i) => i.parent);
+
+    // Intellect: difficulty ramp + relax
+    intellect.trigger();
+    if (intellect.consumeRelaxation()) {
+      // optional: use to schedule fish; currently just consumed
+    }
+
+    // Reschedule spawns if interval shrank
+    if (now - lastSpawnTime > spawnInterval) {
+      spawnItem();
+      lastSpawnTime = now;
+      clearInterval(spawnTimer);
+      spawnTimer = setInterval(spawnItem, spawnInterval);
+    }
   }
 
   function handleCatch(item) {
