@@ -23,6 +23,8 @@
   const ROBOT_SCALE = 1.05;
   const STAND_ROCK_ANGLE = 0;
   const STAND_ROCK_SHIFT = 0;
+  const CART_HOLE_X = -140;
+  const CART_HOLE_Y = -90;
   const FISH_UNLOCK_SCORE = 300; // score uses +10 per catch, matches ~30 catches
   const FISH_INTERVAL_MIN = 7000;
   const FISH_INTERVAL_RANGE = 5000;
@@ -146,6 +148,7 @@
   let aimBias = -1;
   let aimTarget = -1;
   let standWavePhase = 0;
+  let waterPhase = 0;
 
   const gameState = {
     score: 0,
@@ -237,17 +240,17 @@
     robotContainer.scale.set(ROBOT_SCALE);
     robotContainer.zIndex = 10;
 
-    const base = createSprite('robotBase', { anchor: { x: 0.5, y: 1 }, position: { x: 0, y: 0 } });
+    const base = createSprite('robot', { anchor: { x: 0.5, y: 1 }, position: { x: 0, y: 0 } });
     base.scale.set(1);
 
     cartHole = new PIXI.Graphics();
     cartHole.beginFill(0xff0000, 0.0001);
     cartHole.drawRect(-CART_HOLE_WIDTH / 2, -CART_HOLE_HEIGHT / 2, CART_HOLE_WIDTH, CART_HOLE_HEIGHT);
     cartHole.endFill();
-    cartHole.position.set(-CART_OFFSET, -100);
+    cartHole.position.set(CART_HOLE_X, CART_HOLE_Y);
 
-    robotHead = createSprite('robotHeadLeft', { anchor: { x: 0.5, y: 0.5 }, position: { x: 0, y: -base.height * 0.85 } });
-    robotHead.scale.set(1.05);
+    robotHead = createSprite('robotHeadLeft', { anchor: { x: 0.5, y: 0.5 }, position: { x: 0, y: base.height * -0.35 } });
+    robotHead.scale.set(1.0);
 
     robotContainer.addChild(base, cartHole, robotHead);
     stand.addChild(robotContainer);
@@ -292,11 +295,13 @@
     buildRobot();
 
     // conveyors
+    gameContainer.sortableChildren = true;
     SPAWN_POINTS.forEach((pos) => {
       const c = createSprite('caterpillar', { anchor: { x: 0.5, y: 0.5 }, position: { x: pos.x, y: pos.y } });
-      const scale = 1.15;
+      const scale = 1.2;
       c.scale.set(scale * (pos.dir > 0 ? 1 : -1), scale);
-      c.alpha = 0.9;
+      c.alpha = 0.95;
+      c.zIndex = 1;
       gameContainer.addChild(c);
     });
 
@@ -461,21 +466,28 @@
     aimBias += (dir - aimBias) * 0.2;
     if (robotHead) {
       const desiredTexture = dir >= 0 ? 'robotHeadRight' : 'robotHeadLeft';
-      if (robotHead.texture !== PIXI.Texture.from(desiredTexture)) {
-        robotHead.texture = PIXI.Texture.from(desiredTexture);
+      const tex = PIXI.Texture.from(desiredTexture);
+      if (robotHead.texture !== tex) {
+        robotHead.texture = tex;
       }
       robotHead.rotation = aimBias * 0.05;
     }
     if (robotContainer) {
       robotContainer.rotation = aimBias * 0.05;
+      robotContainer.x = ROBOT_X - stand.x;
     }
 
     stand.y = standBaseY + STAND_ROCK_SHIFT * Math.sin(standWavePhase);
     stand.rotation = STAND_ROCK_ANGLE * Math.sin(standWavePhase);
 
+    waterPhase += dt * 0.4;
     const bias = aimBias;
-    if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 10;
-    if (waterFront) waterFront.x = BASE_WIDTH / 2 + bias * 16;
+    if (waterBack) {
+      waterBack.x = BASE_WIDTH / 2 + bias * 10 + Math.sin(waterPhase) * 6;
+    }
+    if (waterFront) {
+      waterFront.x = BASE_WIDTH / 2 + bias * 16 + Math.sin(waterPhase * 1.2) * 10;
+    }
 
     const g = GRAVITY * dt;
     items.forEach((item) => {
