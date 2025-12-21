@@ -21,6 +21,8 @@
   const CART_HOLE_WIDTH = 120;
   const CART_HOLE_HEIGHT = 28;
   const ROBOT_SCALE = 1.05;
+  const STAND_ROCK_ANGLE = 0;
+  const STAND_ROCK_SHIFT = 0;
   const FISH_UNLOCK_SCORE = 300; // score uses +10 per catch, matches ~30 catches
   const FISH_INTERVAL_MIN = 7000;
   const FISH_INTERVAL_RANGE = 5000;
@@ -461,7 +463,7 @@
     const now = performance.now();
 
     const dir = aimTarget >= 0 ? 1 : -1;
-    aimBias += (dir - aimBias) * 0.15;
+    aimBias += (dir - aimBias) * 0.2;
     if (robotHead) {
       const desiredTexture = dir >= 0 ? 'robotHeadRight' : 'robotHeadLeft';
       if (robotHead.texture !== PIXI.Texture.from(desiredTexture)) {
@@ -470,18 +472,17 @@
       robotHead.rotation = aimBias * 0.05;
     }
     if (robotHands) {
-      robotHands.x += (dir * HANDS_OFFSET - robotHands.x) * 0.2;
+      robotHands.x += (dir * HANDS_OFFSET - robotHands.x) * 0.25;
     }
     if (robotCart) {
-      robotCart.x += (dir * CART_OFFSET - robotCart.x) * 0.2;
+      robotCart.x += (dir * CART_OFFSET - robotCart.x) * 0.25;
     }
     if (robotContainer) {
-      robotContainer.rotation = aimBias * 0.06;
+      robotContainer.rotation = aimBias * 0.05;
     }
 
-    standWavePhase += dt;
-    stand.y = standBaseY + Math.sin(standWavePhase * Math.PI * 0.5) * 15;
-    stand.rotation = Math.sin(standWavePhase * 0.5) * (Math.PI / 70);
+    stand.y = standBaseY + STAND_ROCK_SHIFT * Math.sin(standWavePhase);
+    stand.rotation = STAND_ROCK_ANGLE * Math.sin(standWavePhase);
 
     const bias = aimBias;
     if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 10;
