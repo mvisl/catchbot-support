@@ -1,6 +1,6 @@
 // Pixi.js implementation approximating SpriteKit scene (1200x768). Contains
 // conveyors, water, stand, robot, and SpawnScrewIntellect-inspired difficulty.
-// Next steps: fish trajectories, magic screws, HUD from atlases, robot parts/animations.
+// Includes fish arcs/unlock, magic screws with recovery, HUD, and sound effects.
 
 (() => {
   const BASE_WIDTH = 1200;
@@ -15,6 +15,14 @@
   const LAUNCH = { dx: 240, dy: 260 };
   const MAX_MISSES = 5;
   const BEST_KEY = 'catchbot-best-score';
+  const FISH_UNLOCK_SCORE = 300; // score uses +10 per catch, matches ~30 catches
+  const FISH_INTERVAL_MIN = 7000;
+  const FISH_INTERVAL_RANGE = 5000;
+  const FISH_HIT_RADIUS = 120;
+  const FISH_UP_DURATION = 1.1;
+  const FISH_DOWN_DURATION = 1.05;
+  const MAGIC_COUNTDOWN = 30;
+  const MAGIC_CHANCE = 0.08;
 
   const assets = [
     { name: 'background', url: 'assets/background.png' },
@@ -107,6 +115,10 @@
   let waterFront;
   let items = [];
   let statusEl;
+  let activeFish = null;
+  let nextFishAt = 0;
+  let fishWindowClosed = false;
+  let tickerAttached = false;
 
   const gameState = {
     score: 0,
@@ -116,9 +128,13 @@
     lastSpawnTime: 0,
     playing: false,
     targetX: BASE_WIDTH / 2,
+    fishUnlocked: false,
+    magicCountdown: 0,
+    forceMagic: false,
   };
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+  const randRange = (min, max) => Math.random() * (max - min) + min;
 
   async function loadPixi() {
     if (window.PIXI) return;
@@ -187,11 +203,17 @@
     gameContainer.removeChildren();
     hudContainer.removeChildren();
     items = [];
+    activeFish = null;
+    fishWindowClosed = false;
+    nextFishAt = performance.now() + randRange(FISH_INTERVAL_MIN, FISH_INTERVAL_MIN + FISH_INTERVAL_RANGE);
     gameState.score = 0;
     gameState.misses = 0;
     gameState.spawnInterval = 2000;
     gameState.lastSpawnTime = performance.now();
     gameState.targetX = BASE_WIDTH / 2;
+    gameState.magicCountdown = 0;
+    gameState.forceMagic = false;
+    gameState.fishUnlocked = false;
     intellect.reset(gameState.spawnInterval);
 
     const bg = createSprite('background', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT / 2 } });
@@ -257,6 +279,7 @@
     hudContainer.sortableChildren = true;
     hudContainer.zIndex = 100;
 
+    app.stage.removeAllListeners();
     app.stage.eventMode = 'static';
     app.stage.hitArea = new PIXI.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
     app.stage.on('pointermove', (e) => {
@@ -272,7 +295,10 @@
       }
     });
 
-    app.ticker.add(update);
+    if (!tickerAttached) {
+      app.ticker.add(update);
+      tickerAttached = true;
+    }
 
     hudContainer.scoreLabel = scoreLabel;
     hudContainer.bestLabel = bestLabel;
@@ -285,28 +311,40 @@
   }
 
   function restartGame() {
-    clearInterval(spawnTimer);
     buildScene();
-    startSpawning();
     gameState.playing = true;
   }
 
   function startSpawning() {
-    clearInterval(spawnTimer);
-    spawnTimer = setInterval(spawnItem, gameState.spawnInterval);
+    gameState.lastSpawnTime = performance.now();
   }
 
   function spawnItem() {
     if (!gameState.playing) return;
-    const isFish = Math.random() < 0.12;
-    const key = isFish ? 'fish' : 'screw';
     const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
-    const sprite = createSprite(key, { anchor: { x: 0.5, y: 0.5 }, position: { x: spawn.x, y: spawn.y }, scale: isFish ? 0.5 : 0.45 });
+    const type = nextSpawnType();
+    const sprite = createSprite('screw', { anchor: { x: 0.5, y: 0.5 }, position: { x: spawn.x, y: spawn.y }, scale: type === 'magic' ? 0.5 : 0.45 });
     sprite.vx = spawn.dir * (LAUNCH.dx + (Math.random() * 80 - 40));
     sprite.vy = -(LAUNCH.dy + (Math.random() * 80 - 40));
-    sprite.type = key;
+    sprite.type = type;
+    if (type === 'magic') {
+      sprite.tint = 0x6de7ff;
+      sprite.alpha = 0.92;
+    }
     items.push(sprite);
     gameContainer.addChild(sprite);
+  }
+
+  function nextSpawnType() {
+    if (gameState.forceMagic && gameState.misses > 0) {
+      gameState.forceMagic = false;
+      gameState.magicCountdown = MAGIC_COUNTDOWN;
+      return 'magic';
+    }
+    if (gameState.misses > 0 && Math.random() < MAGIC_CHANCE) {
+      return 'magic';
+    }
+    return 'screw';
   }
 
   function playSound(key, volume = 0.7) {
@@ -318,12 +356,22 @@
   }
 
   function handleCatch(item) {
-    if (item.type === 'fish') {
-      gameState.score = Math.max(0, gameState.score - 500);
-      playSound('fish', 0.7);
+    if (item.type === 'magic') {
+      // recover one miss and reward a small bonus
+      gameState.score += 10;
+      gameState.misses = Math.max(0, gameState.misses - 1);
+      gameState.magicCountdown = MAGIC_COUNTDOWN;
+      playSound('collect', 0.9);
+      hudContainer.missLabel.text = `Missed: ${gameState.misses}/${MAX_MISSES}`;
     } else {
       gameState.score += 10;
       playSound('collect', 0.7);
+      if (gameState.misses > 0) {
+        gameState.magicCountdown = Math.max(0, gameState.magicCountdown - 1);
+        if (gameState.magicCountdown === 0) {
+          gameState.forceMagic = true;
+        }
+      }
     }
     hudContainer.scoreLabel.text = `Score: ${gameState.score}`;
     if (gameState.score > gameState.best) {
@@ -339,6 +387,7 @@
     gameState.misses += 1;
     hudContainer.missLabel.text = `Missed: ${gameState.misses}/${MAX_MISSES}`;
     playSound('miss', 0.65);
+    requestMagicGuarantee();
     if (gameState.misses >= MAX_MISSES) {
       endGame();
     }
@@ -346,7 +395,6 @@
 
   function endGame() {
     gameState.playing = false;
-    clearInterval(spawnTimer);
     items.forEach((i) => i.parent && i.parent.removeChild(i));
     items = [];
   }
@@ -381,21 +429,25 @@
     });
     items = items.filter((i) => i.parent);
 
-    intellect.trigger(gameState);
-    if (intellect.consumeRelaxation()) {
-      // hook for fish scheduling if needed
+    // fish unlock once score reached
+    if (!gameState.fishUnlocked && gameState.score >= FISH_UNLOCK_SCORE) {
+      gameState.fishUnlocked = true;
+      nextFishAt = now + randRange(FISH_INTERVAL_MIN * 0.5, FISH_INTERVAL_MIN + FISH_INTERVAL_RANGE);
     }
+    maybeSpawnFish(now);
 
     if (now - gameState.lastSpawnTime > gameState.spawnInterval) {
       spawnItem();
       gameState.lastSpawnTime = now;
-      clearInterval(spawnTimer);
-      spawnTimer = setInterval(spawnItem, gameState.spawnInterval);
+      intellect.trigger(gameState);
     }
+
+    updateFish(dt);
   }
 
   async function startCatchbot(onReady, onError) {
     try {
+      statusEl = document.getElementById('game-status');
       if (!window.PIXI) await loadPixi();
       await loadAssets();
       initApp();
@@ -415,4 +467,125 @@
   }
 
   window.startCatchbot = startCatchbot;
+
+  function requestMagicGuarantee() {
+    if (gameState.misses > 0) {
+      gameState.magicCountdown = MAGIC_COUNTDOWN;
+      gameState.forceMagic = false;
+    } else {
+      gameState.magicCountdown = 0;
+    }
+  }
+
+  function maybeSpawnFish(now) {
+    if (!gameState.fishUnlocked) return;
+    if (activeFish) return;
+    if (now < nextFishAt) return;
+    spawnFish(now);
+  }
+
+  function spawnFish(now) {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const start = { x: side === -1 ? 82 : BASE_WIDTH - 82, y: BASE_HEIGHT - 90 };
+    const clampLeft = BASE_WIDTH * 0.22;
+    const clampRight = BASE_WIDTH * 0.78;
+    const targetX = clamp(side === -1 ? Math.min(robot.x, BASE_WIDTH * 0.48) : Math.max(robot.x, BASE_WIDTH * 0.52), clampLeft, clampRight);
+    const targetY = stand.y - stand.height * stand.scale.y * 0.35;
+    const target = { x: targetX, y: targetY };
+    const splash = { x: start.x + (side === -1 ? 96 : -96), y: BASE_HEIGHT - 24 };
+    const controlUp = { x: start.x + (targetX - start.x) * 0.6, y: targetY + 220 };
+    const controlDown = { x: targetX, y: targetY - 140 };
+
+    const fish = createSprite('fish', { anchor: { x: 0.5, y: 0.5 }, position: start, scale: 0.55 });
+    fish.zIndex = 8;
+    gameContainer.addChild(fish);
+
+    activeFish = {
+      sprite: fish,
+      phase: 'up',
+      t: 0,
+      start,
+      target,
+      splash,
+      controlUp,
+      controlDown,
+      durationUp: FISH_UP_DURATION,
+      durationDown: FISH_DOWN_DURATION,
+    };
+    fishWindowClosed = false;
+    nextFishAt = now + randRange(FISH_INTERVAL_MIN, FISH_INTERVAL_MIN + FISH_INTERVAL_RANGE);
+  }
+
+  function quadPoint(p0, p1, p2, t) {
+    const inv = 1 - t;
+    const x = inv * inv * p0.x + 2 * inv * t * p1.x + t * t * p2.x;
+    const y = inv * inv * p0.y + 2 * inv * t * p1.y + t * t * p2.y;
+    return { x, y };
+  }
+
+  function updateFish(dt) {
+    if (!activeFish) return;
+    const f = activeFish;
+    const duration = f.phase === 'up' ? f.durationUp : f.durationDown;
+    f.t += dt / duration;
+    let pos;
+    if (f.phase === 'up') {
+      pos = quadPoint(f.start, f.controlUp, f.target, Math.min(1, f.t));
+      f.sprite.position.copyFrom(pos);
+      checkFishCatchWindow(pos);
+      if (f.t >= 1) {
+        f.phase = 'down';
+        f.t = 0;
+      }
+    } else {
+      pos = quadPoint(f.target, f.controlDown, f.splash, Math.min(1, f.t));
+      f.sprite.position.copyFrom(pos);
+      if (f.t >= 1 || pos.y > BASE_HEIGHT + 20) {
+        playSound('miss', 0.4);
+        disposeFish(false);
+      }
+    }
+  }
+
+  function checkFishCatchWindow(pos) {
+    if (!activeFish) return;
+    const cartTop = stand.y - stand.height * stand.scale.y * 0.12;
+    const cartCenter = { x: robot.x, y: cartTop };
+    if (pos.y < cartTop - 36) {
+      fishWindowClosed = true;
+      return;
+    }
+    if (fishWindowClosed) return;
+    if (pos.y <= cartTop + 10) {
+      const dx = pos.x - cartCenter.x;
+      const dy = pos.y - cartCenter.y;
+      const dist = Math.hypot(dx, dy);
+      const withinCart = Math.abs(dx) < stand.width * stand.scale.x * 0.4;
+      if (dist <= FISH_HIT_RADIUS && withinCart) {
+        disposeFish(true);
+      }
+    }
+  }
+
+  function disposeFish(hitCart) {
+    if (!activeFish) return;
+    const fish = activeFish.sprite;
+    if (hitCart) {
+      gameState.score = Math.max(0, gameState.score - 500);
+      hudContainer.scoreLabel.text = `Score: ${gameState.score}`;
+      gameState.misses += 1;
+      hudContainer.missLabel.text = `Missed: ${gameState.misses}/${MAX_MISSES}`;
+      requestMagicGuarantee();
+      intellect.applyFishRelaxation(gameState);
+      playSound('fish', 0.7);
+      if (gameState.misses >= MAX_MISSES) {
+        endGame();
+      }
+    } else {
+      playSound('miss', 0.35);
+    }
+    fish.parent && fish.parent.removeChild(fish);
+    activeFish = null;
+    fishWindowClosed = false;
+  }
 })();
