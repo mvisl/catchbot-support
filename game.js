@@ -6,6 +6,7 @@
   const BASE_WIDTH = 1314; // matches SpriteKit background width
   const BASE_HEIGHT = 768;
   const GRAVITY = 2100;
+  const ROBOT_X = BASE_WIDTH / 2;
   const SPAWN_POINTS = [
     { x: 62, y: 530, dir: 1 },
     { x: 92, y: 344, dir: 1 },
@@ -121,6 +122,8 @@
   let fishWindowClosed = false;
   let tickerAttached = false;
   let isDragging = false;
+  let aimBias = 0;
+  let aimTarget = 0;
 
   const gameState = {
     score: 0,
@@ -245,7 +248,7 @@
       gameContainer.addChild(c);
     });
 
-    robot = createSprite('robot', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: stand.y - stand.height * stand.scale.y + 12 } });
+    robot = createSprite('robot', { anchor: { x: 0.5, y: 1 }, position: { x: ROBOT_X, y: stand.y - stand.height * stand.scale.y + 12 } });
     const robotScale = 1.05;
     robot.scale.set(robotScale);
     robot.zIndex = 10;
@@ -262,7 +265,7 @@
     bestLabel.position.set(24, 50);
     const missLabel = new PIXI.Text(`Missed: ${gameState.misses}/${MAX_MISSES}`, missStyle);
     missLabel.position.set(24, 76);
-    const prompt = new PIXI.Text('Tap left/right or drag to steer. Arrows/A/D also work.', promptStyle);
+    const prompt = new PIXI.Text('Tap or move left/right to tilt. Arrows/A/D also work.', promptStyle);
     prompt.anchor.set(0.5, 1);
     prompt.position.set(BASE_WIDTH / 2, BASE_HEIGHT - 12);
 
@@ -289,16 +292,13 @@
     app.stage.on('pointermove', (e) => {
       const p = e.global;
       if (!isDragging) return;
-      gameState.targetX = clamp(p.x, 160, BASE_WIDTH - 160);
+      aimTarget = clamp((p.x - ROBOT_X) / (BASE_WIDTH / 2), -1, 1);
     });
     app.stage.on('pointerdown', (e) => {
       isDragging = true;
       const p = e.global;
       const half = BASE_WIDTH / 2;
-      const step = 180;
-      if (e.nativeEvent && e.nativeEvent.detail === 1) {
-        gameState.targetX = clamp(robot.x + (p.x < half ? -step : step), 160, BASE_WIDTH - 160);
-      }
+      aimTarget = p.x < half ? -0.5 : 0.5;
     });
     app.stage.on('pointerup', () => { isDragging = false; });
     app.stage.on('pointerupoutside', () => { isDragging = false; });
@@ -412,10 +412,10 @@
     const dt = delta / 60;
     const now = performance.now();
 
-    robot.x += (gameState.targetX - robot.x) * 0.18;
-    robot.x = clamp(robot.x, 140, BASE_WIDTH - 140);
-
-    const bias = clamp((robot.x - BASE_WIDTH / 2) / (BASE_WIDTH / 2), -1, 1);
+    aimBias += (aimTarget - aimBias) * 0.12;
+    robot.rotation = aimBias * 0.08;
+    robot.x = ROBOT_X;
+    const bias = aimBias;
     if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 10;
     if (waterFront) waterFront.x = BASE_WIDTH / 2 + bias * 16;
 
@@ -427,7 +427,7 @@
 
       const cartTop = stand.y - stand.height * stand.scale.y * 0.32;
       const cartWidth = stand.width * stand.scale.x * 0.38;
-      const withinCart = Math.abs(item.x - robot.x) < cartWidth && Math.abs(item.y - cartTop) < 78;
+      const withinCart = Math.abs(item.x - ROBOT_X) < cartWidth && Math.abs(item.y - cartTop) < 78;
 
       if (withinCart && item.vy > 0) {
         handleCatch(item);
@@ -497,7 +497,7 @@
     const start = { x: side === -1 ? 82 : BASE_WIDTH - 82, y: BASE_HEIGHT - 90 };
     const clampLeft = BASE_WIDTH * 0.22;
     const clampRight = BASE_WIDTH * 0.78;
-    const targetX = clamp(side === -1 ? Math.min(robot.x, BASE_WIDTH * 0.49) : Math.max(robot.x, BASE_WIDTH * 0.51), clampLeft, clampRight);
+    const targetX = clamp(side === -1 ? Math.min(ROBOT_X, BASE_WIDTH * 0.49) : Math.max(ROBOT_X, BASE_WIDTH * 0.51), clampLeft, clampRight);
     const targetY = stand.y - stand.height * stand.scale.y * 0.38;
     const target = { x: targetX, y: targetY };
     const splash = { x: start.x + (side === -1 ? 96 : -96), y: BASE_HEIGHT - 24 };
