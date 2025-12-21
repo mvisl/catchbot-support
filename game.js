@@ -7,10 +7,10 @@
   const BASE_HEIGHT = 768;
   const GRAVITY = 2100; // tuned to feel closer to SpriteKit gravity
   const SPAWN_POINTS = [
-    { x: 0, y: 530, dir: 1 },
-    { x: 0, y: 344, dir: 1 },
-    { x: BASE_WIDTH, y: 530, dir: -1 },
-    { x: BASE_WIDTH, y: 344, dir: -1 },
+    { x: 62, y: 530, dir: 1 },
+    { x: 92, y: 344, dir: 1 },
+    { x: BASE_WIDTH - 62, y: 530, dir: -1 },
+    { x: BASE_WIDTH - 92, y: 344, dir: -1 },
   ];
   const LAUNCH = { dx: 240, dy: 260 };
   const MAX_MISSES = 5;
@@ -25,6 +25,7 @@
     { name: 'waterFront', url: 'assets/waterFront.png' },
     { name: 'screw', url: 'assets/screw.png' },
     { name: 'fish', url: 'assets/fish.png' },
+    { name: 'caterpillar', url: 'assets/caterpillar_track.png' },
     { name: 'uiPause', url: 'assets/ui-pause.png' },
     { name: 'uiReplay', url: 'assets/ui-replay.png' },
     { name: 'uiPlay', url: 'assets/ui-play.png' },
@@ -144,6 +145,21 @@
     const standScale = (BASE_WIDTH * 0.42) / stand.width;
     stand.scale.set(standScale);
     gameContainer.addChild(stand);
+
+    // conveyors (static visual reference)
+    const caterPositions = [
+      { x: SPAWN_POINTS[0].x, y: SPAWN_POINTS[0].y },
+      { x: SPAWN_POINTS[1].x, y: SPAWN_POINTS[1].y },
+      { x: SPAWN_POINTS[2].x, y: SPAWN_POINTS[2].y },
+      { x: SPAWN_POINTS[3].x, y: SPAWN_POINTS[3].y },
+    ];
+    caterPositions.forEach((pos) => {
+      const c = createSprite('caterpillar', { anchor: { x: 0.5, y: 0.5 }, position: { x: pos.x, y: pos.y } });
+      const scale = 1.15;
+      c.scale.set(scale * (pos.x > BASE_WIDTH / 2 ? -1 : 1), scale);
+      c.alpha = 0.9;
+      gameContainer.addChild(c);
+    });
 
     robot = createSprite('robot', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 180 } });
     const robotScale = (BASE_HEIGHT * 0.5) / robot.height;
