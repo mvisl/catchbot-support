@@ -1,11 +1,11 @@
-// Pixi.js + Matter-like lightweight physics (custom) port of the SpriteKit game.
-// Base resolution: 1200x768 (matches GameScene.sks). Uses contain-fit scaling.
+// Pixi.js implementation approximating SpriteKit scene (1200x768). Contains
+// conveyors, water, stand, robot, and SpawnScrewIntellect-inspired difficulty.
+// Next steps: fish trajectories, magic screws, HUD from atlases, robot parts/animations.
 
-// CDN Pixi
 (() => {
   const BASE_WIDTH = 1200;
   const BASE_HEIGHT = 768;
-  const GRAVITY = 2100; // tuned to feel closer to SpriteKit gravity
+  const GRAVITY = 2100;
   const SPAWN_POINTS = [
     { x: 62, y: 530, dir: 1 },
     { x: 92, y: 344, dir: 1 },
@@ -16,7 +16,6 @@
   const MAX_MISSES = 5;
   const BEST_KEY = 'catchbot-best-score';
 
-  // Simple asset manifest
   const assets = [
     { name: 'background', url: 'assets/background.png' },
     { name: 'stand', url: 'assets/stand.png' },
@@ -37,6 +36,67 @@
     fish: 'assets/sfx/ouch.wav',
   };
 
+  // Simplified SpawnScrewIntellect
+  const intellect = {
+    minInterval: 250,
+    maxInterval: 2500,
+    waveRelaxationBoost: 120,
+    fishRelaxationBoost: 200,
+    relaxationHeadroom: 200,
+    minimumRelaxationCap: 900,
+    relaxationTighteningScore: 120,
+    relaxationEntryEpsilon: 20,
+    waveScoreStep: 25,
+    nextRelaxationScore: 25,
+    bestDifficultyInterval: 2000,
+    pendingRelaxations: 0,
+    reset(spawnInterval) {
+      this.nextRelaxationScore = this.waveScoreStep;
+      this.pendingRelaxations = 0;
+      this.bestDifficultyInterval = spawnInterval;
+    },
+    trigger(state) {
+      let { spawnInterval, score } = state;
+      if (spawnInterval > 500) {
+        spawnInterval = Math.max(this.minInterval, spawnInterval - 0.96);
+      } else {
+        spawnInterval = Math.max(this.minInterval, spawnInterval - 0.08);
+      }
+      ({ spawnInterval, score } = this.maybeRelax(spawnInterval, score));
+      this.bestDifficultyInterval = Math.min(this.bestDifficultyInterval, spawnInterval);
+      state.spawnInterval = spawnInterval;
+    },
+    maybeRelax(spawnInterval, score) {
+      if (score < this.nextRelaxationScore) return { spawnInterval, score };
+      if (spawnInterval > this.bestDifficultyInterval + this.relaxationEntryEpsilon) return { spawnInterval, score };
+      const eased = spawnInterval + this.waveRelaxationBoost;
+      const capped = Math.min(this.relaxationCeiling(), eased);
+      spawnInterval = Math.max(spawnInterval, capped);
+      this.nextRelaxationScore += this.waveScoreStep;
+      this.pendingRelaxations += 1;
+      return { spawnInterval, score };
+    },
+    consumeRelaxation() {
+      if (this.pendingRelaxations > 0) {
+        this.pendingRelaxations -= 1;
+        return true;
+      }
+      return false;
+    },
+    applyFishRelaxation(state) {
+      if (state.spawnInterval > this.bestDifficultyInterval + this.relaxationEntryEpsilon) return;
+      const boosted = state.spawnInterval + this.fishRelaxationBoost;
+      const capped = Math.min(this.relaxationCeiling(), boosted);
+      state.spawnInterval = Math.max(state.spawnInterval, capped);
+    },
+    relaxationCeiling() {
+      const scoreFactor = Math.min(1, gameState.score / this.relaxationTighteningScore);
+      const scoreCap = this.maxInterval - (this.maxInterval - this.minimumRelaxationCap) * scoreFactor;
+      const progressCap = Math.max(this.minInterval, this.bestDifficultyInterval + this.relaxationHeadroom);
+      return Math.min(scoreCap, progressCap);
+    },
+  };
+
   let app;
   let rootContainer;
   let gameContainer;
@@ -46,16 +106,17 @@
   let waterBack;
   let waterFront;
   let items = [];
-  let score = 0;
-  let best = 0;
-  let misses = 0;
-  let spawnInterval = 2000; // ms baseline (SpriteKit starts at 2s)
-  let spawnTimer;
-  let lastSpawnTime = 0;
-  let pendingRelaxations = 0;
-  let playing = false;
-  let targetX = BASE_WIDTH / 2;
   let statusEl;
+
+  const gameState = {
+    score: 0,
+    best: 0,
+    misses: 0,
+    spawnInterval: 2000,
+    lastSpawnTime: 0,
+    playing: false,
+    targetX: BASE_WIDTH / 2,
+  };
 
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -107,11 +168,10 @@
   }
 
   async function loadAssets() {
-    const loader = new PIXI.Assets();
     const manifest = assets.reduce((acc, a) => ({ ...acc, [a.name]: a.url }), {});
     await PIXI.Assets.init({ manifest: { bundles: [{ name: 'main', assets: manifest }] } });
     await PIXI.Assets.loadBundle('main');
-    best = Number(localStorage.getItem(BEST_KEY) || 0);
+    gameState.best = Number(localStorage.getItem(BEST_KEY) || 0);
   }
 
   function createSprite(name, opts = {}) {
@@ -127,13 +187,12 @@
     gameContainer.removeChildren();
     hudContainer.removeChildren();
     items = [];
-    score = 0;
-    misses = 0;
-    spawnInterval = 2000;
-    lastSpawnTime = performance.now();
-    pendingRelaxations = 0;
-    intellect.reset();
-    targetX = BASE_WIDTH / 2;
+    gameState.score = 0;
+    gameState.misses = 0;
+    gameState.spawnInterval = 2000;
+    gameState.lastSpawnTime = performance.now();
+    gameState.targetX = BASE_WIDTH / 2;
+    intellect.reset(gameState.spawnInterval);
 
     const bg = createSprite('background', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT / 2 } });
     bg.width = BASE_WIDTH;
@@ -151,17 +210,11 @@
     stand.scale.set(standScale);
     gameContainer.addChild(stand);
 
-    // conveyors (static visual reference)
-    const caterPositions = [
-      { x: SPAWN_POINTS[0].x, y: SPAWN_POINTS[0].y },
-      { x: SPAWN_POINTS[1].x, y: SPAWN_POINTS[1].y },
-      { x: SPAWN_POINTS[2].x, y: SPAWN_POINTS[2].y },
-      { x: SPAWN_POINTS[3].x, y: SPAWN_POINTS[3].y },
-    ];
-    caterPositions.forEach((pos) => {
+    // conveyors
+    SPAWN_POINTS.forEach((pos) => {
       const c = createSprite('caterpillar', { anchor: { x: 0.5, y: 0.5 }, position: { x: pos.x, y: pos.y } });
       const scale = 1.15;
-      c.scale.set(scale * (pos.x > BASE_WIDTH / 2 ? -1 : 1), scale);
+      c.scale.set(scale * (pos.dir > 0 ? 1 : -1), scale);
       c.alpha = 0.9;
       gameContainer.addChild(c);
     });
@@ -177,11 +230,11 @@
     const missStyle = new PIXI.TextStyle({ fontFamily: 'Roboto, Arial', fontSize: 22, fill: '#F6D7D7' });
     const promptStyle = new PIXI.TextStyle({ fontFamily: 'Roboto, Arial', fontSize: 18, fill: '#CFEFD2' });
 
-    const scoreLabel = new PIXI.Text(`Score: ${score}`, textStyle);
+    const scoreLabel = new PIXI.Text(`Score: ${gameState.score}`, textStyle);
     scoreLabel.position.set(24, 18);
-    const bestLabel = new PIXI.Text(`Best: ${best}`, bestStyle);
+    const bestLabel = new PIXI.Text(`Best: ${gameState.best}`, bestStyle);
     bestLabel.position.set(24, 50);
-    const missLabel = new PIXI.Text(`Missed: ${misses}/${MAX_MISSES}`, missStyle);
+    const missLabel = new PIXI.Text(`Missed: ${gameState.misses}/${MAX_MISSES}`, missStyle);
     missLabel.position.set(24, 76);
     const prompt = new PIXI.Text('Tap left/right or drag to steer. Arrows/A/D also work.', promptStyle);
     prompt.anchor.set(0.5, 1);
@@ -204,33 +257,30 @@
     hudContainer.sortableChildren = true;
     hudContainer.zIndex = 100;
 
-    // Input
     app.stage.eventMode = 'static';
     app.stage.hitArea = new PIXI.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
     app.stage.on('pointermove', (e) => {
       const p = e.global;
-      targetX = clamp(p.x, 140, BASE_WIDTH - 140);
+      gameState.targetX = clamp(p.x, 140, BASE_WIDTH - 140);
     });
     app.stage.on('pointerdown', (e) => {
       const p = e.global;
       const half = BASE_WIDTH / 2;
       const step = 180;
       if (e.nativeEvent && e.nativeEvent.detail === 1) {
-        targetX = clamp(robot.x + (p.x < half ? -step : step), 140, BASE_WIDTH - 140);
+        gameState.targetX = clamp(robot.x + (p.x < half ? -step : step), 140, BASE_WIDTH - 140);
       }
     });
 
-    // Game loop
     app.ticker.add(update);
 
-    // HUD refs
     hudContainer.scoreLabel = scoreLabel;
     hudContainer.bestLabel = bestLabel;
     hudContainer.missLabel = missLabel;
   }
 
   function togglePause() {
-    if (!playing) return;
+    if (!gameState.playing) return;
     app.ticker.started ? app.ticker.stop() : app.ticker.start();
   }
 
@@ -238,16 +288,16 @@
     clearInterval(spawnTimer);
     buildScene();
     startSpawning();
-    playing = true;
+    gameState.playing = true;
   }
 
   function startSpawning() {
     clearInterval(spawnTimer);
-    spawnTimer = setInterval(spawnItem, spawnInterval);
+    spawnTimer = setInterval(spawnItem, gameState.spawnInterval);
   }
 
   function spawnItem() {
-    if (!playing) return;
+    if (!gameState.playing) return;
     const isFish = Math.random() < 0.12;
     const key = isFish ? 'fish' : 'screw';
     const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
@@ -267,28 +317,58 @@
     audio.play().catch(() => {});
   }
 
+  function handleCatch(item) {
+    if (item.type === 'fish') {
+      gameState.score = Math.max(0, gameState.score - 500);
+      playSound('fish', 0.7);
+    } else {
+      gameState.score += 10;
+      playSound('collect', 0.7);
+    }
+    hudContainer.scoreLabel.text = `Score: ${gameState.score}`;
+    if (gameState.score > gameState.best) {
+      gameState.best = gameState.score;
+      localStorage.setItem(BEST_KEY, String(gameState.best));
+      hudContainer.bestLabel.text = `Best: ${gameState.best}`;
+    }
+    item.parent.removeChild(item);
+  }
+
+  function handleMiss(item) {
+    item.parent.removeChild(item);
+    gameState.misses += 1;
+    hudContainer.missLabel.text = `Missed: ${gameState.misses}/${MAX_MISSES}`;
+    playSound('miss', 0.65);
+    if (gameState.misses >= MAX_MISSES) {
+      endGame();
+    }
+  }
+
+  function endGame() {
+    gameState.playing = false;
+    clearInterval(spawnTimer);
+    items.forEach((i) => i.parent && i.parent.removeChild(i));
+    items = [];
+  }
+
   function update(delta) {
-    if (!playing) return;
-    const dt = delta / 60; // normalized
+    if (!gameState.playing) return;
+    const dt = delta / 60;
     const now = performance.now();
 
-    // Move robot toward target
-    robot.x += (targetX - robot.x) * 0.18;
+    robot.x += (gameState.targetX - robot.x) * 0.18;
     robot.x = clamp(robot.x, 140, BASE_WIDTH - 140);
 
-    // Parallax water
     const bias = clamp((robot.x - BASE_WIDTH / 2) / (BASE_WIDTH / 2), -1, 1);
     if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 12;
     if (waterFront) waterFront.x = BASE_WIDTH / 2 + bias * 24;
 
-    // Physics for items
     const g = GRAVITY * dt;
     items.forEach((item) => {
       item.vy += g * dt;
       item.x += item.vx * dt;
       item.y += item.vy * dt;
 
-      // Simple collision with stand (cart)
       const cartTop = stand.y - stand.height * stand.scale.y * 0.12;
       const cartWidth = stand.width * stand.scale.x * 0.4;
       const withinCart = Math.abs(item.x - robot.x) < cartWidth && Math.abs(item.y - cartTop) < 80;
@@ -301,53 +381,17 @@
     });
     items = items.filter((i) => i.parent);
 
-    // Intellect: difficulty ramp + relax
-    intellect.trigger();
+    intellect.trigger(gameState);
     if (intellect.consumeRelaxation()) {
-      // optional: use to schedule fish; currently just consumed
+      // hook for fish scheduling if needed
     }
 
-    // Reschedule spawns if interval shrank
-    if (now - lastSpawnTime > spawnInterval) {
+    if (now - gameState.lastSpawnTime > gameState.spawnInterval) {
       spawnItem();
-      lastSpawnTime = now;
+      gameState.lastSpawnTime = now;
       clearInterval(spawnTimer);
-      spawnTimer = setInterval(spawnItem, spawnInterval);
+      spawnTimer = setInterval(spawnItem, gameState.spawnInterval);
     }
-  }
-
-  function handleCatch(item) {
-    if (item.type === 'fish') {
-      score = Math.max(0, score - 500);
-      playSound('fish', 0.7);
-    } else {
-      score += 10;
-      playSound('collect', 0.7);
-    }
-    hudContainer.scoreLabel.text = `Score: ${score}`;
-    if (score > best) {
-      best = score;
-      localStorage.setItem(BEST_KEY, String(best));
-      hudContainer.bestLabel.text = `Best: ${best}`;
-    }
-    item.parent.removeChild(item);
-  }
-
-  function handleMiss(item) {
-    item.parent.removeChild(item);
-    misses += 1;
-    hudContainer.missLabel.text = `Missed: ${misses}/${MAX_MISSES}`;
-    playSound('miss', 0.65);
-    if (misses >= MAX_MISSES) {
-      endGame();
-    }
-  }
-
-  function endGame() {
-    playing = false;
-    clearInterval(spawnTimer);
-    items.forEach((i) => i.parent && i.parent.removeChild(i));
-    items = [];
   }
 
   async function startCatchbot(onReady, onError) {
@@ -357,7 +401,7 @@
       initApp();
       buildScene();
       startSpawning();
-      playing = true;
+      gameState.playing = true;
       if (statusEl) statusEl.style.display = 'none';
       if (onReady) onReady();
     } catch (err) {
