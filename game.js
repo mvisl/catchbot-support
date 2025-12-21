@@ -147,19 +147,21 @@
     });
   }
 
-  function initApp() {
-    app = new PIXI.Application({
+  async function initApp() {
+    app = new PIXI.Application();
+    await app.init({
       width: BASE_WIDTH,
       height: BASE_HEIGHT,
-      backgroundColor: 0x0b1c0a,
+      background: 0x0b1c0a,
       resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
+      antialias: true,
+      powerPreference: 'high-performance',
     });
 
     const canvas = document.getElementById('game-canvas');
-    canvas.replaceWith(app.view);
-    app.view.id = 'game-canvas';
-    app.view.className = 'game-canvas';
+    canvas.replaceWith(app.canvas);
+    app.canvas.id = 'game-canvas';
+    app.canvas.className = 'game-canvas';
 
     rootContainer = new PIXI.Container();
     app.stage.addChild(rootContainer);
@@ -450,7 +452,7 @@
       statusEl = document.getElementById('game-status');
       if (!window.PIXI) await loadPixi();
       await loadAssets();
-      initApp();
+      await initApp();
       buildScene();
       startSpawning();
       gameState.playing = true;
