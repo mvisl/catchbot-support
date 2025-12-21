@@ -3,7 +3,7 @@
 // Includes fish arcs/unlock, magic screws with recovery, HUD, and sound effects.
 
 (() => {
-  const BASE_WIDTH = 1200;
+  const BASE_WIDTH = 1314; // matches SpriteKit background width
   const BASE_HEIGHT = 768;
   const GRAVITY = 2100;
   const SPAWN_POINTS = [
@@ -31,6 +31,7 @@
     { name: 'waterBack', url: 'assets/waterBack.png' },
     { name: 'waterFront', url: 'assets/waterFront.png' },
     { name: 'screw', url: 'assets/screw.png' },
+    { name: 'screwMagic', url: 'assets/screw-magic.png' },
     { name: 'fish', url: 'assets/fish.png' },
     { name: 'caterpillar', url: 'assets/caterpillar_track.png' },
     { name: 'uiPause', url: 'assets/ui-pause.png' },
@@ -119,6 +120,7 @@
   let nextFishAt = 0;
   let fishWindowClosed = false;
   let tickerAttached = false;
+  let isDragging = false;
 
   const gameState = {
     score: 0,
@@ -223,14 +225,14 @@
     bg.height = BASE_HEIGHT;
     gameContainer.addChild(bg);
 
-    waterBack = createSprite('waterBack', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 120 }, alpha: 0.65 });
+    waterBack = createSprite('waterBack', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 18 }, alpha: 0.75 });
     waterBack.width = BASE_WIDTH;
-    waterFront = createSprite('waterFront', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 60 }, alpha: 0.8 });
+    waterFront = createSprite('waterFront', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 2 }, alpha: 0.9 });
     waterFront.width = BASE_WIDTH;
     gameContainer.addChild(waterBack, waterFront);
 
-    stand = createSprite('stand', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 60 } });
-    const standScale = (BASE_WIDTH * 0.42) / stand.width;
+    stand = createSprite('stand', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 52 } });
+    const standScale = 1.02;
     stand.scale.set(standScale);
     gameContainer.addChild(stand);
 
@@ -243,8 +245,8 @@
       gameContainer.addChild(c);
     });
 
-    robot = createSprite('robot', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 180 } });
-    const robotScale = (BASE_HEIGHT * 0.5) / robot.height;
+    robot = createSprite('robot', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: stand.y - stand.height * stand.scale.y + 12 } });
+    const robotScale = 1.05;
     robot.scale.set(robotScale);
     robot.zIndex = 10;
     gameContainer.addChild(robot);
@@ -266,13 +268,13 @@
 
     hudContainer.addChild(scoreLabel, bestLabel, missLabel, prompt);
 
-    const pauseBtn = createSprite('uiPause', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH - 72, y: 48 } });
+    const pauseBtn = createSprite('uiPause', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH - 90, y: 52 } });
     pauseBtn.scale.set(0.7);
     pauseBtn.eventMode = 'static';
     pauseBtn.cursor = 'pointer';
     pauseBtn.on('pointerdown', togglePause);
-    const restartBtn = createSprite('uiReplay', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH - 72, y: 118 } });
-    restartBtn.scale.set(0.7);
+    const restartBtn = createSprite('uiReplay', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH - 90, y: 126 } });
+    restartBtn.scale.set(0.6);
     restartBtn.eventMode = 'static';
     restartBtn.cursor = 'pointer';
     restartBtn.on('pointerdown', restartGame);
@@ -286,16 +288,20 @@
     app.stage.hitArea = new PIXI.Rectangle(0, 0, BASE_WIDTH, BASE_HEIGHT);
     app.stage.on('pointermove', (e) => {
       const p = e.global;
-      gameState.targetX = clamp(p.x, 140, BASE_WIDTH - 140);
+      if (!isDragging) return;
+      gameState.targetX = clamp(p.x, 160, BASE_WIDTH - 160);
     });
     app.stage.on('pointerdown', (e) => {
+      isDragging = true;
       const p = e.global;
       const half = BASE_WIDTH / 2;
       const step = 180;
       if (e.nativeEvent && e.nativeEvent.detail === 1) {
-        gameState.targetX = clamp(robot.x + (p.x < half ? -step : step), 140, BASE_WIDTH - 140);
+        gameState.targetX = clamp(robot.x + (p.x < half ? -step : step), 160, BASE_WIDTH - 160);
       }
     });
+    app.stage.on('pointerup', () => { isDragging = false; });
+    app.stage.on('pointerupoutside', () => { isDragging = false; });
 
     if (!tickerAttached) {
       app.ticker.add(update);
@@ -325,7 +331,7 @@
     if (!gameState.playing) return;
     const spawn = SPAWN_POINTS[Math.floor(Math.random() * SPAWN_POINTS.length)];
     const type = nextSpawnType();
-    const sprite = createSprite('screw', { anchor: { x: 0.5, y: 0.5 }, position: { x: spawn.x, y: spawn.y }, scale: type === 'magic' ? 0.5 : 0.45 });
+    const sprite = createSprite(type === 'magic' ? 'screwMagic' : 'screw', { anchor: { x: 0.5, y: 0.5 }, position: { x: spawn.x, y: spawn.y }, scale: type === 'magic' ? 0.54 : 0.5 });
     sprite.vx = spawn.dir * (LAUNCH.dx + (Math.random() * 80 - 40));
     sprite.vy = -(LAUNCH.dy + (Math.random() * 80 - 40));
     sprite.type = type;
@@ -410,8 +416,8 @@
     robot.x = clamp(robot.x, 140, BASE_WIDTH - 140);
 
     const bias = clamp((robot.x - BASE_WIDTH / 2) / (BASE_WIDTH / 2), -1, 1);
-    if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 12;
-    if (waterFront) waterFront.x = BASE_WIDTH / 2 + bias * 24;
+    if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 10;
+    if (waterFront) waterFront.x = BASE_WIDTH / 2 + bias * 16;
 
     const g = GRAVITY * dt;
     items.forEach((item) => {
@@ -419,9 +425,9 @@
       item.x += item.vx * dt;
       item.y += item.vy * dt;
 
-      const cartTop = stand.y - stand.height * stand.scale.y * 0.12;
-      const cartWidth = stand.width * stand.scale.x * 0.4;
-      const withinCart = Math.abs(item.x - robot.x) < cartWidth && Math.abs(item.y - cartTop) < 80;
+      const cartTop = stand.y - stand.height * stand.scale.y * 0.32;
+      const cartWidth = stand.width * stand.scale.x * 0.38;
+      const withinCart = Math.abs(item.x - robot.x) < cartWidth && Math.abs(item.y - cartTop) < 78;
 
       if (withinCart && item.vy > 0) {
         handleCatch(item);
@@ -491,8 +497,8 @@
     const start = { x: side === -1 ? 82 : BASE_WIDTH - 82, y: BASE_HEIGHT - 90 };
     const clampLeft = BASE_WIDTH * 0.22;
     const clampRight = BASE_WIDTH * 0.78;
-    const targetX = clamp(side === -1 ? Math.min(robot.x, BASE_WIDTH * 0.48) : Math.max(robot.x, BASE_WIDTH * 0.52), clampLeft, clampRight);
-    const targetY = stand.y - stand.height * stand.scale.y * 0.35;
+    const targetX = clamp(side === -1 ? Math.min(robot.x, BASE_WIDTH * 0.49) : Math.max(robot.x, BASE_WIDTH * 0.51), clampLeft, clampRight);
+    const targetY = stand.y - stand.height * stand.scale.y * 0.38;
     const target = { x: targetX, y: targetY };
     const splash = { x: start.x + (side === -1 ? 96 : -96), y: BASE_HEIGHT - 24 };
     const controlUp = { x: start.x + (targetX - start.x) * 0.6, y: targetY + 220 };
