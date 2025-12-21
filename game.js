@@ -16,6 +16,11 @@
   const LAUNCH = { dx: 240, dy: 260 };
   const MAX_MISSES = 5;
   const BEST_KEY = 'catchbot-best-score';
+  const CART_OFFSET = 112;
+  const HANDS_OFFSET = 20;
+  const CART_HOLE_WIDTH = 120;
+  const CART_HOLE_HEIGHT = 28;
+  const ROBOT_SCALE = 1.05;
   const FISH_UNLOCK_SCORE = 300; // score uses +10 per catch, matches ~30 catches
   const FISH_INTERVAL_MIN = 7000;
   const FISH_INTERVAL_RANGE = 5000;
@@ -29,6 +34,19 @@
     { name: 'background', url: 'assets/background.png' },
     { name: 'stand', url: 'assets/stand.png' },
     { name: 'robot', url: 'assets/robot.png' },
+    { name: 'robotBody', url: 'assets/robotBody.png' },
+    { name: 'robotHands', url: 'assets/robotHands.png' },
+    { name: 'robotCart', url: 'assets/robotCart.png' },
+    { name: 'robotHeadLeft', url: 'assets/robotHeadLeft.png' },
+    { name: 'robotHeadRight', url: 'assets/robotHeadRight.png' },
+    { name: 'robotHeadLeftOi', url: 'assets/robotHeadLeftOi.png' },
+    { name: 'robotHeadRightOi', url: 'assets/robotHeadRightOi.png' },
+    { name: 'robotHeadLeftYea', url: 'assets/robotHeadLeftYea.png' },
+    { name: 'robotHeadRightYea', url: 'assets/robotHeadRightYea.png' },
+    { name: 'robotEye', url: 'assets/robotEye.png' },
+    { name: 'robotEyeApple', url: 'assets/robotEyeApple.png' },
+    { name: 'robotEyeLid', url: 'assets/robotEyeLid.png' },
+    { name: 'robotLight', url: 'assets/robotLight.png' },
     { name: 'waterBack', url: 'assets/waterBack.png' },
     { name: 'waterFront', url: 'assets/waterFront.png' },
     { name: 'screw', url: 'assets/screw.png' },
@@ -111,10 +129,15 @@
   let rootContainer;
   let gameContainer;
   let hudContainer;
-  let robot;
+  let robotContainer;
+  let robotHead;
+  let robotHands;
+  let robotCart;
+  let robotBody;
   let stand;
   let waterBack;
   let waterFront;
+  let standBaseY = 0;
   let items = [];
   let statusEl;
   let activeFish = null;
@@ -122,8 +145,9 @@
   let fishWindowClosed = false;
   let tickerAttached = false;
   let isDragging = false;
-  let aimBias = 0;
-  let aimTarget = 0;
+  let aimBias = -1;
+  let aimTarget = -1;
+  let standWavePhase = 0;
 
   const gameState = {
     score: 0,
@@ -206,6 +230,32 @@
     return sprite;
   }
 
+  function buildRobot() {
+    if (robotContainer) {
+      robotContainer.destroy({ children: true });
+    }
+    robotContainer = new PIXI.Container();
+    robotContainer.position.set(-5, -stand.height * stand.scale.y + 12);
+    robotContainer.scale.set(ROBOT_SCALE);
+    robotContainer.zIndex = 10;
+
+    robotCart = createSprite('robotCart', { anchor: { x: 0.5, y: 0.5 } });
+    robotCart.scale.set(1.35);
+    robotCart.position.set(-CART_OFFSET, -robotCart.height * 0.6);
+
+    robotBody = createSprite('robotBody', { anchor: { x: 0.5, y: 1 }, position: { x: 0, y: 0 } });
+    robotBody.scale.set(1.2);
+
+    robotHands = createSprite('robotHands', { anchor: { x: 0.5, y: 0.5 }, position: { x: -HANDS_OFFSET, y: -robotBody.height * 0.22 } });
+    robotHands.scale.set(1.15);
+
+    robotHead = createSprite('robotHeadLeft', { anchor: { x: 0.5, y: 0.5 }, position: { x: 0, y: -robotBody.height * 0.85 } });
+    robotHead.scale.set(1.05);
+
+    robotContainer.addChild(robotCart, robotBody, robotHands, robotHead);
+    stand.addChild(robotContainer);
+  }
+
   function buildScene() {
     gameContainer.removeChildren();
     hudContainer.removeChildren();
@@ -221,6 +271,9 @@
     gameState.magicCountdown = 0;
     gameState.forceMagic = false;
     gameState.fishUnlocked = false;
+    aimTarget = -1;
+    aimBias = -1;
+    standWavePhase = 0;
     intellect.reset(gameState.spawnInterval);
 
     const bg = createSprite('background', { anchor: { x: 0.5, y: 0.5 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT / 2 } });
@@ -234,10 +287,12 @@
     waterFront.width = BASE_WIDTH;
     gameContainer.addChild(waterBack, waterFront);
 
-    stand = createSprite('stand', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: BASE_HEIGHT - 52 } });
+    standBaseY = BASE_HEIGHT - 52;
+    stand = createSprite('stand', { anchor: { x: 0.5, y: 1 }, position: { x: BASE_WIDTH / 2, y: standBaseY } });
     const standScale = 1.02;
     stand.scale.set(standScale);
     gameContainer.addChild(stand);
+    buildRobot();
 
     // conveyors
     SPAWN_POINTS.forEach((pos) => {
@@ -247,12 +302,6 @@
       c.alpha = 0.9;
       gameContainer.addChild(c);
     });
-
-    robot = createSprite('robot', { anchor: { x: 0.5, y: 1 }, position: { x: ROBOT_X, y: stand.y - stand.height * stand.scale.y + 12 } });
-    const robotScale = 1.05;
-    robot.scale.set(robotScale);
-    robot.zIndex = 10;
-    gameContainer.addChild(robot);
 
     const textStyle = new PIXI.TextStyle({ fontFamily: 'Roboto, Arial', fontSize: 28, fill: '#E8FCE9' });
     const bestStyle = new PIXI.TextStyle({ fontFamily: 'Roboto, Arial', fontSize: 22, fill: '#8DE9FF' });
@@ -292,13 +341,12 @@
     app.stage.on('pointermove', (e) => {
       const p = e.global;
       if (!isDragging) return;
-      aimTarget = clamp((p.x - ROBOT_X) / (BASE_WIDTH / 2), -1, 1);
+      aimTarget = p.x < BASE_WIDTH / 2 ? -1 : 1;
     });
     app.stage.on('pointerdown', (e) => {
       isDragging = true;
       const p = e.global;
-      const half = BASE_WIDTH / 2;
-      aimTarget = p.x < half ? -0.5 : 0.5;
+      aimTarget = p.x < BASE_WIDTH / 2 ? -1 : 1;
     });
     app.stage.on('pointerup', () => { isDragging = false; });
     app.stage.on('pointerupoutside', () => { isDragging = false; });
@@ -412,9 +460,29 @@
     const dt = delta / 60;
     const now = performance.now();
 
-    aimBias += (aimTarget - aimBias) * 0.12;
-    robot.rotation = aimBias * 0.08;
-    robot.x = ROBOT_X;
+    const dir = aimTarget >= 0 ? 1 : -1;
+    aimBias += (dir - aimBias) * 0.15;
+    if (robotHead) {
+      const desiredTexture = dir >= 0 ? 'robotHeadRight' : 'robotHeadLeft';
+      if (robotHead.texture !== PIXI.Texture.from(desiredTexture)) {
+        robotHead.texture = PIXI.Texture.from(desiredTexture);
+      }
+      robotHead.rotation = aimBias * 0.05;
+    }
+    if (robotHands) {
+      robotHands.x += (dir * HANDS_OFFSET - robotHands.x) * 0.2;
+    }
+    if (robotCart) {
+      robotCart.x += (dir * CART_OFFSET - robotCart.x) * 0.2;
+    }
+    if (robotContainer) {
+      robotContainer.rotation = aimBias * 0.06;
+    }
+
+    standWavePhase += dt;
+    stand.y = standBaseY + Math.sin(standWavePhase * Math.PI * 0.5) * 15;
+    stand.rotation = Math.sin(standWavePhase * 0.5) * (Math.PI / 70);
+
     const bias = aimBias;
     if (waterBack) waterBack.x = BASE_WIDTH / 2 + bias * 10;
     if (waterFront) waterFront.x = BASE_WIDTH / 2 + bias * 16;
@@ -425,9 +493,15 @@
       item.x += item.vx * dt;
       item.y += item.vy * dt;
 
-      const cartTop = stand.y - stand.height * stand.scale.y * 0.32;
-      const cartWidth = stand.width * stand.scale.x * 0.38;
-      const withinCart = Math.abs(item.x - ROBOT_X) < cartWidth && Math.abs(item.y - cartTop) < 78;
+      let withinCart = false;
+      if (robotCart) {
+        const cartBounds = robotCart.getBounds();
+        const holeW = CART_HOLE_WIDTH * robotCart.scale.x * ROBOT_SCALE;
+        const holeH = CART_HOLE_HEIGHT * robotCart.scale.y * ROBOT_SCALE;
+        const cartCenterX = cartBounds.x + cartBounds.width / 2;
+        const cartCenterY = cartBounds.y + cartBounds.height * 0.35;
+        withinCart = Math.abs(item.x - cartCenterX) < holeW / 2 && Math.abs(item.y - cartCenterY) < holeH / 2;
+      }
 
       if (withinCart && item.vy > 0) {
         handleCatch(item);
@@ -497,7 +571,12 @@
     const start = { x: side === -1 ? 82 : BASE_WIDTH - 82, y: BASE_HEIGHT - 90 };
     const clampLeft = BASE_WIDTH * 0.22;
     const clampRight = BASE_WIDTH * 0.78;
-    const targetX = clamp(side === -1 ? Math.min(ROBOT_X, BASE_WIDTH * 0.49) : Math.max(ROBOT_X, BASE_WIDTH * 0.51), clampLeft, clampRight);
+    let cartCenterX = ROBOT_X;
+    if (robotCart) {
+      const bounds = robotCart.getBounds();
+      cartCenterX = bounds.x + bounds.width / 2;
+    }
+    const targetX = clamp(side === -1 ? Math.min(cartCenterX, BASE_WIDTH * 0.49) : Math.max(cartCenterX, BASE_WIDTH * 0.51), clampLeft, clampRight);
     const targetY = stand.y - stand.height * stand.scale.y * 0.38;
     const target = { x: targetX, y: targetY };
     const splash = { x: start.x + (side === -1 ? 96 : -96), y: BASE_HEIGHT - 24 };
@@ -557,8 +636,10 @@
 
   function checkFishCatchWindow(pos) {
     if (!activeFish) return;
-    const cartTop = stand.y - stand.height * stand.scale.y * 0.12;
-    const cartCenter = { x: robot.x, y: cartTop };
+    if (!robotCart) return;
+    const cartBounds = robotCart.getBounds();
+    const cartCenter = { x: cartBounds.x + cartBounds.width / 2, y: cartBounds.y + cartBounds.height * 0.35 };
+    const cartTop = cartCenter.y - CART_HOLE_HEIGHT * robotCart.scale.y * ROBOT_SCALE * 0.5;
     if (pos.y < cartTop - 36) {
       fishWindowClosed = true;
       return;
@@ -568,7 +649,8 @@
       const dx = pos.x - cartCenter.x;
       const dy = pos.y - cartCenter.y;
       const dist = Math.hypot(dx, dy);
-      const withinCart = Math.abs(dx) < stand.width * stand.scale.x * 0.4;
+      const holeW = CART_HOLE_WIDTH * robotCart.scale.x * ROBOT_SCALE;
+      const withinCart = Math.abs(dx) < holeW / 2;
       if (dist <= FISH_HIT_RADIUS && withinCart) {
         disposeFish(true);
       }
